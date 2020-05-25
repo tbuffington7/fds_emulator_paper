@@ -1,0 +1,123 @@
+\RequirePackage{amsmath}
+
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\R}{\mathbb{R}}
+
+
+\documentclass{article}
+
+\usepackage[numbers, sort&compress]{natbib}
+% \usepackage{pdfpages}
+\usepackage{rotating}
+\usepackage{amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage[strings]{underscore}
+\usepackage{anyfontsize}
+\usepackage{subcaption}
+% \usepackage{lipsum}
+\usepackage[toc]{appendix}
+% \usepackage[utf8]{inputenc}
+
+\begin{document}
+
+
+\title{A deep learning framework for emulating transient compartment fire simulations}
+
+
+
+
+\author{}
+\date{March 18, 2020} 
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+\section{Introduction}
+Compartment fire models are useful for many applications. For one, accurate predictions of potential fire scenarios help quantify the risk of adverse consequences such as property damage and loss of life. They also can provide insight in forensics problems by identifying fire credible fire scenarios given the observed evidence. The value of accurate models is also augmented by the fact that compartment fire experiments are difficult and expensive to perform. 
+
+The computational expense of fire simulation tools varies significantly. For instance,  ``zone" models typically run at super-real-time speeds because of their relatively simple physics. These models are useful for probabilistic assessments \cite{anderson2018quantifying, baker2013developing} and other applications that require results from many simulations. Zone models typically divide a compartment into two homogeneous zones- an upper gas layer of hot combustion products, and a cooler lower layer. Examples of commonly used zone models include the Consolidated Model of Fire and Smoke Transport (CFAST) \cite{peacock1993cfast} and BRANZFIRE \cite{wade2000branzfire}. Conversely, computational fluid dynamics (CFD) models are significantly more computationally expensive, but are generally more accurate. These models are also capable of making predictions for specific locations in the compartment, rather than for large spatially averaged zones. 
+
+There have been various efforts to combine the advantages of CFD and zone models. Hostikka et al. \cite{hostikka2005two} proposed a Two-model Monte Carlo approach that uses a relatively small number of FDS runs to correct the results from a larger number of CFAST runs to produce a probabilistic output. Outside of compartment fire modelling, there are many studies that have explored the coupling of zone models with CFD models for various applications \cite{dreng2008method, tan2005application, wang2007validation, colella2009calculation, floyd2011coupling, colella2011multiscale}. 
+
+The recent advances in machine learning have allowed for novel methods of producing models that combine the accuracy of CFD models with the computational speed of zone models. Hodges et al. \cite{hodges2019compartment} and  Lattimer et al. \cite{lattimer2020using} have proposed using transpose convolutional neural networks (TCNNs) for producing spatially resolved temperature and velocity fields for steady compartment fires. Although the present work is similar to these studies in the sense that deep learning is leveraged to develop "emulators" of FDS, there are several key differences. First, rather than predicting the full temperature field in a steady compartment fire, the aim of the present study is to predict the transient temperature evolutions at specified location for a compartment fire with a transient heat release rate evolution. These locations correspond to the locations of thermocouples in an experimental configuration. Another key difference is the role of zone models in the methodology. Rather than using zone model results as inputs to the deep learning models, they are used for \textit{transfer learning} \cite{pan2009survey}. This is a concept heavily used in Natural Language Processing (NLP) \cite{ruder2019transfer} and computer vision \cite{gopalakrishnan2017deep} applications. The idea is that an agent can learn a new task more efficiently if it has already been trained to perform a similar task. In the present study, the artificial neural networks (ANNs) are first trained to produce outputs from a zone model, with which a large training set can be obtained easily. These ANNs are then trained to produce FDS results. The result is that the pretrained ANNs can learn to produce accurate FDS results with much fewer FDS runs than non-pretrained ANNs. An advantage of this approach is that when the model makes predictions for a new case, the zone model does not need to be run again, which would be a speed-limiting step. 
+
+This paper also explores the utility of using FDS emulators for inverse problems. These problems involve using observations to infer the causal factors that produced them. Essentially the goal is to run FDS in reverse; from a set of simulation outputs, the goal is to determine the simulation inputs that produced them. This cannot be done directly in FDS, so iterative techniques requiring many runs for a single scenario are often required, which is especially computationally expensive. Deep learning can aid this process not only by reducing the time it takes to produce FDS results, but also by obviating the need for iteration altogether. This is because ANNs can be trained to map FDS outputs to FDS inputs directly, which makes the inversion process even faster. 
+
+The specific inversion problem explored in this paper is to determine a fire's transient heat release rate (HRR) from a series of transient thermocouple measurements. The HRR has been described as the most important variable in fire hazard assessment \cite{babrauskas1992heat}. It describes the amount of energy that is released from the combustion reactions of a fire, and it is a predictor for the onset of adverse fire consequences such as flashover \cite{mccaffrey1981estimating} and secondary ignition \cite{jahn2008effect}. Many methods exist to measure HRR at various scales. Perhaps the most common calorimetry apparatus at the bench scale is the cone calorimeter \cite{babrauskas1984development} developed by Babrauskas at NIST. This approach is based on measuring the oxygen consumed during the fire. Because the heat of combustion per unit of oxygen consumed is approximately constant across most fuels encountered in fires \cite{huggett1980estimation}, the oxygen consumption measurements can be easily converted to estimates of the heat release rate. Another apparatus is the OSU calorimeter \cite{smith1996heat}. Unlike oxygen consumption calorimeters, this apparatus measures temperatures at various locations that allow for the HRR to be estimated by a simple energy balance. 
+
+Full scale calorimetry measurements are more difficult to obtain. Open burning calorimeters have been developed to measure the HRR of furniture items \cite{babrauskas1982upholstered}. However, a limitation of these approaches is that the burning conditions do not necessarily resemble those of an actual compartment fire. To account for room effects, oxygen depletion calorimetery has been applied to room-scale fire tests \cite{abecassis2008characterisation}. These measurements are often expensive and difficult to set up, which has led to an effort to develop more cost effective full scale HRR inversion frameworks. Most of these approaches rely on using correlations or two-zone models to invert for the HRR. Richards et al. \cite{richards1997fire} used temperature data from ceiling sensors to estiamte the HRR using LAVENT, a two-zone model. Overholt and Ezekoye \cite{overholt2012characterizing} developed a inversion framework that uses measurements of the upper gas layer temperature with the zone-model CFAST. Kurzawski and Ezekoye also developed a methodology using heat flux measurments from Directional Flame Thermometers (DFTs) with FDS as the forward model. The present work is a natural extension of these studies in that it utilizes temperature measurements with FDS as the forward model. 
+
+\section{Experimental setup}
+% Note, I am pulling these specs from Andrew's dissertation
+The experiments were conducted in a structure measuring 4.2 meters north to south and 4.6 meters east to west and 2.25 meters from the floor to the ceiling. A door on the west wall was kept open for all the tests described in this work, which was the only vent in the compartment. All interior walls are lined with 1.6 cm gypsum wallboard and the floor is 2.54 cm thick and made of concrete. For the propane fire tests, a sand burner with a height 0.4 m was placed at the center of the structure. The burner opening is 0.32 by 0.32 m and a 4 cm layer of sand sits on the top edge of the burner. 
+
+\section{Computational models}
+Two computational models of the experimental setup were used in this study- one in CFAST and one in FDS. The CFAST model serves only for pretraining the ANNs that eventually learn to emulate FDS. 
+\subsection{Consolidated Model of Fire and Smoke Transport (CFAST)}
+Because the CFAST model is only used for transfer learning, it is a relatively simple description of the experimental setup. 
+
+
+\subsection{Fire Dynamics Simulator (FDS)}
+
+
+
+
+\section{Emulator methodology}
+\subsection{Building the training set}
+A key step developing the emulators is to determine a viable strategy for building the training set. This involves generating randomly draws for the HRR curves, but an appropriate construction of the random draws is not straightforward. One may think to specify the functional form of the HRR curve (i.e. t-squared or triangle ramps) and randomly draw the corresponding parameters. This approach is limiting because the ANNs then likely would only be able to produce reliable results for these \textit{parametric} HRR curves. Instead, a non-parametric description of the HRR curvies is preferred. This means that an HRR curve is drawn without specifying a functional form. There are also potential issues with this approach; if one draws independent random values at different times to construct the HRR curve, then that would produce unphyisically ``noisy" HRR curves.
+
+The Gaussian process formalism provides a useful solution to these issues. A Gaussian process is a stochastic process in which any finite collection of random variables has a joint multivariate normal distribution \cite{lee2017deep}. This concept can be a bit abstruse for those unfamiliar with this type of statistical modelling, so a more in-depth explanation is provided here. The overall goal is to describe a probability distribution of reasonably smooth functions. 
+
+
+
+If one imagines a distribution of functions, then a random sample of $N$ functions could be collected from the distribution. Each of these functions could then be evaluated at some arbitrary time, $t_1$, producing a set of $N$ scalar values. If the distribution of functions meets the definition of a Gaussian process, then this sample of scalar values will reveal a univariate normal distribution (assuming $N$ is large enough to capture the population distribution). Similarly, these functions could be evaluated at two different times, $t_1, t_2$, and the vector of function evaluations would have a bivariate normal distribution. 
+
+
+$f(\boldsymbol{t})$, will bn-variate normal distribution, whose form is shown in equation \ref{eqn:multivariate_gaussian}.
+
+ \begin{equation}
+  \label{eqn:multivariate_gaussian}
+  p\bigg(f(\boldsymbol{t}) \bigg) = \mathcal{N}\Big(\boldsymbol{\mu}, \boldsymbol{\Sigma} \Big) = 
+  (2\pi)^{-\frac{n}{2}}\text{det}\big[\boldsymbol{\Sigma}\big]^{-\frac{1}{2}}\text{exp}\bigg(-\frac{1}{2}\big[f(\boldsymbol{t}) - \boldsymbol{\mu}\big]^T \boldsymbol{\Sigma}^{-1}\big[f(\boldsymbol{t}) - \boldsymbol{\mu}\big] \bigg)
+\end{equation}
+
+Just as a univariate normal distribution is uniquely characterized by a scalar mean and a scalar variance, a multivariate normal distribution is uniquely characterized by a mean vector $\boldsymbol{\mu}$ and a symmetirc positive semi-definite covariance matrix, $\boldsymbol{\Sigma}$, whose entries are described by equation \ref{eqn:covariance_matrix}.
+
+ \begin{equation}
+  \label{eqn:covariance_matrix}
+  \Sigma_{i,j} = E\bigg([x_i- \mu_i][x_j - \mu_j] \bigg)
+\end{equation}
+
+\noindent where $E$ is the expectation operator, $E(x) =  \int_{-\infty}^{\infty} xp(x) dx$.
+
+Going back to the thought experiment of drawing functions from a distribution, one can imagine drawing a random sample of $N$ functions and evaluating each function at the same two points, $t_i$ and $t_i + \Delta t$. If $\Delta t$ is small, then one would expect that the function evaluations at $t_i$ and $t_i + \Delta t$ would be similar (correlated), depending on how smooth the drawn functions are. In the limiting case, when $\Delta t = 0$, the function evaluations will be exactly the same (perfectly correlated) if the functions are continuous. Conversely, if $\Delta t$ is large, then the two quantities will generally be uncorrelated. This motivates the use of a function to quantify the covariance between function evaluations at different points based on the size of the interval between the two respective times. Specifically, the authors use a squared exponential kernel function, shown in equation \ref{eqn:squared_exponential}, 
+
+
+ \begin{equation}
+  \label{eqn:squared_exponential}
+    K(t_i, t_j) = \tau^2exp\bigg(-\frac{(t_i-t_j)^2}{2b^2}\bigg)
+\end{equation}
+
+\noindent where $\tau^2$ is a hyperparameter that describes the magnitude of the function draws, and $b$, known as the bandwidth, relates to the time scale over which function evaluations are correlated. Intuitively, $b$ defines how smooth the function draws will be, with a larger bandwidth giving smoother functions. This covariance function has a ``bell curve" shape; it reaches a maximum as $t_i - t_j$ approaches zero and goes to zero as $t_i - t_j$ goes to positive infinity or negative infinity. 
+
+
+As previously noted, a mean vector and a covariance function uniquely characterize a multivariate normal distribution. Similarly, a mean function, $m$, and a kernel function, $K$, uniquely characterize a Gaussian process. For any vector of times $\boldsymbol{t} = \begin{bmatrix}  t_1 & t_2, & \ldots & t_n \end{bmatrix}^T$, if $f(t) \sim \mathcal{GP}(m,K)$, then $f(\boldsymbol{t}) \sim \mathcal{N}\Big(m(\boldsymbol{t}), \boldsymbol{\Sigma}\Big)$, where $\boldsymbol{\Sigma} =  K(\boldsymbol{t},\boldsymbol{t})$, i.e. $\Sigma_{i,j} = K(t_i, t_j)$. 
+
+
+
+
+
+\subsection{Forward FDS emulators}
+\subsection{Backward FDS emulators}
+\section{Experimental applications}
+\subsection{Heat release rate inversion}
+\subsection{Bayesian parameter inversion}
+\section{Conclusions}
+\bibliographystyle{unsrtnat}
+\bibliography{./references.bib}
+\end{document}
