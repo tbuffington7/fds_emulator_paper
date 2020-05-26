@@ -242,20 +242,20 @@ For the results described in the rest of the paper, a training set of 1,000 FDS 
   \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth,keepaspectratio]{figures/forward_NN_examples.pdf}
-      \caption{Example of emulator predictions compared to FDS simulations }
+      \caption{Example of emulator predictions compared to the corresponding FDS outputs}
       \label{fig:forward_NN_examples}
   \end{subfigure}
   \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/forward_error_scatter.pdf}
-      \caption{Comparison of the FDS simulation results compared to the predictions from the emulators across all times, all three calibration set tests, and all 17 thermocouples }
+      \caption{Comparison of the FDS simulation results compared to the predicted output from the emulators across all four HRR ramps and all 17 thermocouples }
       \label{fig:forward_error_scatter}
   \end{subfigure}
-  \caption{A comparison of the predictions of the deep learning emulators compared to FDS simulations for the experimental fire ramps, which were not in the neural networks training set. \protect\ref{fig:forward_error_scatter} shows that the emulators successfully predict the FDS output with a mean absolute error of ~2$^o$ C across all sensors, all times, and all three experiments in Figure \protect\ref{fig:training_ramps}.} 
+  \caption{A comparison of the predictions of the ANN emulators compared to FDS simulations. \protect\ref{fig:forward_NN_examples} shows that the emulator outputs are typically smoother than the actual FDS outputs. \protect\ref{fig:forward_error_scatter} shows that the emulators successfully predict the FDS output for the four cases shown in Figure \protect\ref{fig:burner_ramps}. The mean absolute error across all thermocouples, all times, and all four HRR ramps is 1.6$^o$ C.}
   \label{fig:forward_error}
 \end{figure}
 
-
+Figure \protect\ref{fig:forward_NN_examples} shows a typical output from the ANN emulators compared to an actual FDS simulation. The emulator predictions are typically smoother than the FDS outputs. This is likely due to the fact that the fluctuations in the FDS outputs are due to random turbulent effects, which are very difficult for the ANNs to learn. Overall the 
 
 
 \clearpage
