@@ -50,7 +50,7 @@ This paper also explores the utility of using FDS emulators for inverse problems
 
 The specific inversion problem explored in this paper is to determine a fire's transient heat release rate (HRR) from a series of transient thermocouple measurements. The HRR has been described as the most important variable in fire hazard assessment \cite{babrauskas1992heat}. It describes the amount of energy that is released from the combustion reactions of a fire, and it is a predictor for the onset of adverse fire consequences such as flashover \cite{mccaffrey1981estimating} and secondary ignition \cite{jahn2008effect}. Many methods exist to measure HRR at various scales. Perhaps the most common calorimetry apparatus at the bench scale is the cone calorimeter \cite{babrauskas1984development} developed by Babrauskas at NIST. This approach is based on measuring the oxygen consumed during the fire. Because the heat of combustion per unit of oxygen consumed is approximately constant across most fuels encountered in fires \cite{huggett1980estimation}, the oxygen consumption measurements can be easily converted to estimates of the heat release rate. Another apparatus is the OSU calorimeter \cite{smith1996heat}. Unlike oxygen consumption calorimeters, this apparatus measures temperatures at various locations that allow for the HRR to be estimated by a simple energy balance. 
 
-Full scale calorimetry measurements are more difficult to obtain. Open burning calorimeters have been developed to measure the HRR of furniture items \cite{babrauskas1982upholstered}. However, a limitation of these approaches is that the burning conditions do not necessarily resemble those of an actual compartment fire. To account for room effects, oxygen depletion calorimetery has been applied to room-scale fire tests \cite{abecassis2008characterisation}. These measurements are often expensive and difficult to set up, which has led to an effort to develop more cost effective full scale HRR inversion frameworks. Most of these approaches rely on using correlations or two-zone models to invert for the HRR. Richards et al. \cite{richards1997fire} used temperature data from ceiling sensors to estiamte the HRR using LAVENT, a two-zone model. Overholt and Ezekoye \cite{overholt2012characterizing} developed a inversion framework that uses measurements of the upper gas layer temperature with the zone-model CFAST. Kurzawski and Ezekoye also developed a methodology using heat flux measurments from Directional Flame Thermometers (DFTs) with FDS as the forward model. The present work is a natural extension of these studies in that it utilizes temperature measurements with FDS as the forward model. 
+Full scale calorimetry measurements are more difficult to obtain. Open burning calorimeters have been developed to measure the HRR of furniture items \cite{babrauskas1982upholstered}. However, a limitation of these approaches is that the burning conditions do not necessarily resemble those of an actual compartment fire. To account for room effects, oxygen depletion calorimetery has been applied to room-scale fire tests \cite{abecassis2008characterisation}. These measurements are often expensive and difficult to set up, which has led to an effort to develop more cost effective full scale HRR inversion frameworks. Most of these approaches rely on using correlations or two-zone models to invert for the HRR. Richards et al. \cite{richards1997fire} used temperature data from ceiling sensors to estiamte the HRR using LAVENT, a two-zone model. Overholt and Ezekoye \cite{overholt2012characterizing} developed a inversion framework that uses measurements of the upper gas layer temperature with the zone-model CFAST. Kurzawski and Ezekoye also developed a methodology using heat flux measurments from Directional Flame Thermometers (DFTs) with the FDS as the forward model. The present work is a natural extension of these studies in that it utilizes temperature measurements with the physics of FDS for HRR inversion.
 
 \section{Experimental setup}
 % Note, I am pulling these specs from Andrew's dissertation
@@ -71,7 +71,7 @@ Because the CFAST model is only used for transfer learning, it is a relatively s
 \subsection{Building the training set}
 A key step developing the emulators is to determine a viable strategy for building the training set. This involves generating randomly draws for the HRR curves, but an appropriate construction of the random draws is not straightforward. One may think to specify the functional form of the HRR curve (i.e. t-squared or triangle ramps) and randomly draw the corresponding parameters. This approach is limiting because the ANNs then likely would only be able to produce reliable results for these \textit{parametric} HRR curves. Instead, a non-parametric description of the HRR curvies is preferred. This means that an HRR curve is drawn without specifying a functional form. There are also potential issues with this approach; if one draws independent random values at different times to construct the HRR curve, then that would produce unphyisically ``noisy" HRR curves.
 
-The Gaussian process formalism provides a useful solution to these issues. A Gaussian process is a stochastic process in which any finite collection of random variables has a joint multivariate normal distribution \cite{lee2017deep}. This concept can be a bit abstruse for those unfamiliar with this type of statistical modelling, so a more in-depth explanation is provided here. The overall goal is to describe a probability distribution of reasonably smooth functions. If this distribution exists, then one could draw a random sample of $N$ functions, i.e. $f_i(t), i \in \{1,2,.., N\}$, where each $f_i(t)$ is a randomly drawn function defined over $t$. At any specified time, $t'$, one could evaluate every drawn function at $t'$.  This would result in a sample of size $N$ of scalar function evaluations, $f_i(t')$. According to the definition of a Gaussian process, $f_i(t')$ is normally distributed for any $t'$. Now, one could imagine evaluating each of the functions at \textit{two} points, $t_1$ and $t_2$, resulting in two scalar function evaluations for each $f_i(t)$. Again, if the distribution of functions is a Gaussian process, then the vectors $[f_i(t_1), f_i(t_2)]^T$ will have a bivariate normal distribution. Similarly, for any size $k$ vector of times, $\boldsymbol{t} \in \R^k$, $f(\boldsymbol{t})$ is $k$-variate normally distributed. The general equation for a multivariate normal distribution is shown in equation \ref{eqn:multivariate_gaussian}.
+The Gaussian process formalism provides a useful solution to these issues. A Gaussian process is a stochastic process in which any finite collection of random variables has a joint multivariate normal distribution \cite{lee2017deep}. This concept can be a bit abstruse for those unfamiliar with this type of statistical modelling, so a more in-depth explanation is provided here. The overall goal is to describe a probability distribution of reasonably smooth functions. If this distribution exists, then one could draw a random sample of $N$ functions, i.e. $f_n(t), n \in \{1,2,.., N\}$, where each $f_n(t)$ is a randomly drawn function defined over $t$. At any specified time, $t'$, one could evaluate every drawn function at $t'$.  This would result in a sample of size $N$ of scalar function evaluations, $f_n(t')$. According to the definition of a Gaussian process, $f_n(t')$ is normally distributed for any $t'$. Now, one could imagine evaluating each of the functions at \textit{two} points, $t_1$ and $t_2$, resulting in two scalar function evaluations for each $f_n(t)$. Again, if the distribution of functions is a Gaussian process, then the vectors $[f_n(t_1), f_n(t_2)]^T$ will have a bivariate normal distribution. Similarly, for any size $k$ vector of times, $\boldsymbol{t} \in \R^k$, $f(\boldsymbol{t})$ is $k$-variate normally distributed. The general equation for a multivariate normal distribution is shown in equation \ref{eqn:multivariate_gaussian}.
 
  \begin{equation}
   \label{eqn:multivariate_gaussian}
@@ -88,14 +88,14 @@ The Gaussian process formalism provides a useful solution to these issues. A Gau
   \Sigma_{i,j} = E\bigg([x_i- \mu_i][x_j - \mu_j] \bigg)
 \end{equation}
 
-\noindent where $E$ is the expectation operator, $E(x) =  \int_{-\infty}^{\infty} xp(x) dx$. The diagonal terms of  $\boldsymbol{\Sigma}$ describe the variance of the corresponding function evaluations. The off-diagonal terms describe the correlation between two function evaluations. To make this more clear, the bi-variate example is revisited. If $\boldsymbol{t} = [t_1, t_2]^T$, and $t_1 = t_2$, then obviously $f_i(t_1) = f_i(t_2)$ for any randomly drawn continuous function $f_i(t_1)$. Said differently, $f_i(t_1)$ and $f_i(t_2)$ are perfectly correlated. If instead, $t_2 = t_1 + \Delta t$, then there is no guarantee that $f_i(t_1) = f_i(t_2)$, but it is reasonable to expect that $f_i(t_1)$ and $f_i(t_2)$ are correlated if $\Delta t$ is small. If $\Delta t$ is large, then one would expect that $f_i(t_1)$ and $f_i(t_2)$ are uncorrelated. Figure \ref{fig:gp_illustration} provides an illustration of the idea of covariance between function evaluations. 
+\noindent where $E$ is the expectation operator, $E(x) =  \int_{-\infty}^{\infty} xp(x) dx$. The diagonal terms of  $\boldsymbol{\Sigma}$ describe the variance of the corresponding function evaluations. The off-diagonal terms describe the correlation between two function evaluations. To make this more clear, the bi-variate example is revisited. If $\boldsymbol{t} = [t_1, t_2]^T$, and $t_1 = t_2$, then obviously $f_n(t_1) = f_n(t_2)$ for any randomly drawn continuous function $f_n(t_1)$. Said differently, $f_n(t_1)$ and $f_n(t_2)$ are perfectly correlated. If instead, $t_2 = t_1 + \Delta t$, then there is no guarantee that $f_n(t_1) = f_n(t_2)$, but it is reasonable to expect that $f_n(t_1)$ and $f_n(t_2)$ are correlated if $\Delta t$ is small. If $\Delta t$ is large, then one would expect that $f_n(t_1)$ and $f_n(t_2)$ are uncorrelated. Figure \ref{fig:gp_illustration} provides an illustration of the idea of covariance between function evaluations. 
 
 \begin{figure}[htbp]
   \centering
   \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth,keepaspectratio]{figures/gp_draws.pdf}
-      \caption{Random draws from a GP}
+      \caption{Random draws from an arbitrary GP}
       \label{fig:gp_draws}
   \end{subfigure}
   \begin{subfigure}[t]{.45\textwidth}
@@ -104,31 +104,101 @@ The Gaussian process formalism provides a useful solution to these issues. A Gau
       \caption{Scatterplot of function evaluations with bivariate PDF}
       \label{fig:gp_scatter}
   \end{subfigure}
-  \caption{\protect\ref{fig:gp_draws} shows 10 randomly drawn functions from an arbitrary Gaussian process. For each randomly drawn function,  }
+  \caption{\protect\ref{fig:gp_draws} shows 10 randomly drawn functions from an arbitrary Gaussian process. Each randomly drawn function is evaluated at $t=200$ seconds and at $t=400$ seconds. A scatterplot of these function evaluations is shown in \protect\ref{fig:gp_scatter}. Note that the function evaluations at the two different times are correlated. Also, the defining characteristic of a Gaussian process is that these quantities must be normally distributed, so the contours of the bivariate probability density function are also shown. If this process were repeated for many more randomly drawn functions, the contours would indicate the density of points.}
   \label{fig:gp_illustration}
 \end{figure}
 
 
-
-
-This motivates the use of a function to quantify the covariance between function evaluations at different points based on the size of the interval between the two respective times. Specifically, the authors use a squared exponential kernel function, shown in equation \ref{eqn:squared_exponential}, 
-
+Just as a multivariate normal distribution is uniquely characterized by a mean vector and a covariance matrix, a Gaussian process is uniquely characterized by a mean \textit{function}, $m(t)$ and a covariance \textit{function}, $K(t_i, t_j)$. Then for any vector of times $\boldsymbol{t}$, the resulting multivariate normal distribution can be characterized computing the mean vector $m(\boldsymbol{t})$ and the covariance matrix $K(\boldsymbol{t}, \boldsymbol{t})$. Based on the intuition that the degree of correlation between $f_n(t_i)$ and $f_n(t_j)$ should depend on the magnitude of $\Delta t = t_i - t_j$, the squared exponential kernel is a common choice for a covariance function. Its form is shown in equation \ref{eqn:squared_exponential}, 
 
  \begin{equation}
   \label{eqn:squared_exponential}
     K(t_i, t_j) = \tau^2exp\bigg(-\frac{(t_i-t_j)^2}{2b^2}\bigg)
 \end{equation}
 
-\noindent where $\tau^2$ is a hyperparameter that describes the magnitude of the function draws, and $b$, known as the bandwidth, relates to the time scale over which function evaluations are correlated. Intuitively, $b$ defines how smooth the function draws will be, with a larger bandwidth giving smoother functions. This covariance function has a ``bell curve" shape; it reaches a maximum as $t_i - t_j$ approaches zero and goes to zero as $t_i - t_j$ goes to positive infinity or negative infinity. 
+\noindent where $\tau^2$ is a hyperparameter that describes the magnitude of the function draws, and $b$, known as the bandwidth, relates to the time scale over which function evaluations are correlated. Intuitively, $b$ defines how smooth the function draws will be, with a larger bandwidth giving smoother functions. This covariance function has a ``bell" shape; it reaches a maximum as $t_i - t_j$ approaches zero and asymptotically approaches zero as $t_i - t_j$ goes to positive infinity or negative infinity. 
+
+For generating the training set of the FDS emulators, an initial Gaussian process is specified for the transient HRR, i.e. $\dot{Q}(t)\sim \mathcal{GP}\bigg(m_0(t),K_0(t_i,t_j)\bigg)$, with $m_0(t)=$ 150 kW, meaning at at any time, the function evaluations will be centered around 150 kW. The covariance function, $K_0(t_i,t_j)$ is specified according to equation \ref{eqn:squared_exponential}. The hyperparameter, $\tau^2$ is chosen to be 8,100 kW$^{\text{2}}$, meaning that the standard deviation of any individual function evaluation is $\sqrt{8100} = 90$ kW, producing a reasonable variation of HRR values centered around 150 kW. Two bandwidth values, $b$,  were used. In about half of the draws, the bandwidth was set to 30 seconds and in the other half, the bandwidth was set to 60 seconds. This was done so that the training set would contain both smooth and more rapidly changing HRR curves. 
 
 
-As previously noted, a mean vector and a covariance function uniquely characterize a multivariate normal distribution. Similarly, a mean function, $m$, and a kernel function, $K$, uniquely characterize a Gaussian process. For any vector of times $\boldsymbol{t} = \begin{bmatrix}  t_1 & t_2, & \ldots & t_n \end{bmatrix}^T$, if $f(t) \sim \mathcal{GP}(m,K)$, then $f(\boldsymbol{t}) \sim \mathcal{N}\Big(m(\boldsymbol{t}), \boldsymbol{\Sigma}\Big)$, where $\boldsymbol{\Sigma} =  K(\boldsymbol{t},\boldsymbol{t})$, i.e. $\Sigma_{i,j} = K(t_i, t_j)$. 
+To draw HRR curves for the ANN training set, a time vector $\boldsymbol{t}^{\text{NN}} = [0, 10, ..., 900]^T$ was specified. This vector contains 91 evenly spaced points between 0 and 900 seconds (inclusive). 900 seconds (15 minutes) was chosen because it is the maximum simulation duration for the cases of interest in this paper. For other applications, this vector could be specified differently to allow longer simulations. Evaluations of randomly generated functions can then be generated by specifying a multivariate normal distribution with mean $m_0(\boldsymbol{t}^{\text{NN}})$ and covariance $K_0(\boldsymbol{t}^{\text{NN}},\boldsymbol{t}^{\text{NN}})$. The Python package Scipy \cite{jones2001scipy} was used for performing the random multivariate normal draws. 
+
+The astute reader may notice that these multivariate normal draws still do not necessarily produce viable HRR curves. The HRR should be zero at the point of ignition, i.e. $\dot{Q}(0) = 0$. Also, at the end of the simulation, the HRR should ramp back to zero, i.e. $\dot{Q}(t_{end}) = 0$, where $t_{end}$ is the duration of the fire. It is desired that the emulators can produce FDS outputs of simulations with varying $t_{end}$. As a result, $t_{end}$ is uniformly drawn between 150 and 900 seconds for each case in the training set. Fortunately these constraints can be easily imposed into the mean vector and covariance matrix. Let $\boldsymbol{t}^{\text{zero}} = \begin{bmatrix} 0 & t_{end}  \end{bmatrix}^T$ be a vector of times at which $Q(t)$ is zero, i.e. $Q(\boldsymbol{t}^{\text{zero}}) = \boldsymbol{0}$. If one truncates the original multivariate distribution to include only draws that satisfy the constraints, the result is another multivariate normal distribution whose form is shown in equation \ref{eqn:hrr_train_posterior}. 
+ 
+\begin{equation}
+  \label{eqn:hrr_train_posterior}
+ \dot{Q}(\boldsymbol{t}^{\text{NN}}) \sim 
+ \mathcal{N}\Big(\boldsymbol{m}, \boldsymbol{C}\Big)
+\end{equation}
+
+\noindent where 
+
+$$
+\boldsymbol{m} = 
+m_0(\boldsymbol{t}^{\text{NN}}) -  K_0(\boldsymbol{t}^{\text{NN}}, \boldsymbol{t}^{\text{zero}})\Big[K(\boldsymbol{t}^{\text{zero}}, \boldsymbol{t}^{\text{zero}}) \Big]^{-1} m(\boldsymbol{t}^{\text{zero}})
+$$
+
+\noindent and 
+
+$$
+\boldsymbol{C} = K_0(\boldsymbol{t}^{\text{NN}}, \boldsymbol{t}^{\text{NN}}) -  K_0( \boldsymbol{t}^{\text{NN}}, \boldsymbol{t}^{\text{zero}})\Big[K_0(\boldsymbol{t}^{\text{zero}}, \boldsymbol{t}^{\text{zero}})\Big]^{-1}K_0(\boldsymbol{t}^{\text{zero}},\boldsymbol{t}^{\text{NN}})
+$$
+
+The derivation of equation \ref{eqn:hrr_train_posterior} is not given here, but it is based on the procedure of calculating posterior distributions in Gaussian process regression \cite{rasmussen2003gaussian}. Two postprocessing steps are performed on each draw from the distribution described in equation equation \ref{eqn:hrr_train_posterior}. First, the absolute value of $\dot{Q}(\boldsymbol{t}^{\text{NN}})$ is taken to ensure that the HRR curve does not contain negative values. Second, the HRR curve is forced to zero for times after $t_{end}$. This is done so that the HRR does not ramp back up after the specified end of the fire. Examples of the randomly generated HRR curves used to build the training set are shown in Figure \ref{fig:gp_nn_training}.
 
 
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{figures/gp_nn_training_smooth.pdf}
+      \caption{ $b=60$ sec.}
+      \label{fig:gp_nn_training_smooth}
+  \end{subfigure}
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/gp_nn_training_wiggly.pdf}
+      \caption{ $b=30$ sec.}
+      \label{fig:gp_nn_training_wiggly}
+  \end{subfigure}
+  \caption{Example draws from the Gaussian processes used to generate the random HRR curves in the neural network training set. \protect\ref{fig:gp_nn_training_smooth} shows that the drawn functions are smoother when using a bandwidth of 60 seconds compared to those shown in \protect\ref{fig:gp_nn_training_wiggly} when using a bandwidth of 30 seconds. The emulators train on functions drawn from both distributions. Note that the HRR curves also have a varying duration so that the emulators can learn to produce the results from FDS simulations with different simulation durations.} 
+  \label{fig:gp_nn_training}
+\end{figure}
 
-
+A Python script was used to draw random HRR ramps, write them into FDS or CFAST input files, and then run the respective simulations. 
 
 \subsection{Forward FDS emulators}
+
+In this section, the design of the \textit{forward} emulators of FDS is described. For each thermocouple, an ANN is trained to map the time series vector $\dot{Q}(\boldsymbol{t}^\text{NN})$ to the corresponding temperature time series vector from an FDS simulation, $T_i(\boldsymbol{t}^\text{NN})$, where the index $i$ denotes the $ith$ thermocouple. Recall that $\boldsymbol{t}^\text{NN} = [0, 10, ..., 900]^T $. Note that FDS does note necessarily output a prediction at the times in $\boldsymbol{t}^\text{NN}$, so linear interpolation is used. For each ANN, the input layer and output layer both contain 91 nodes, which is equal to the length of $\boldsymbol{t}^\text{NN}$. There are four hidden layers, each with 128 \textit{perceptrons}. These are nodes that compute a weighted sum of their inputs and a bias, and then pass this sum through an activation function. The rectified linear activation function (ReLU) is used as the activation function. This function simply returns its input if the input is positive and returns zero otherwise.
+
+The architecture of the ANNs is shown in Figure \ref{fig:neural_network_diagram} and the diagram of an individual perceptron is shown in Figure \ref{fig:perceptron_diagram}
+
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{.6\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{figures/neural_network_diagram.pdf}
+      \caption{A simplified diagram of the neural network   }
+      \label{fig:neural_network_diagram}
+  \end{subfigure}
+  \begin{subfigure}[t]{.35\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/perceptron_diagram.pdf}
+      \caption{}
+      \label{fig:perceptron_diagram}
+  \end{subfigure}
+  \caption{\protect\ref{fig:neural_network_diagram} shows a simplified diagram of the neural network architecture used for each thermocouple response. In reality, the input layer and output layers each have 91 nodes as opposed to four, and each of the hidden layers has 128 perceptrons as opposed to six. The neural network is fully connected, meaning that each output of a given layer is an input to every perceptron in the next layer. \protect\ref{fig:perceptron_diagram} is a diagram showing the operation of an individual perceptron. All of the inputs to a given perceptron are weighted and then summed with an additional bias parameter. The result of this summation is sent through an activation function, which is the rectified linear activation function (ReLU) with the exception of the output layer, which simply outputs the sum.} 
+  \label{fig:neural_network_drawings}
+\end{figure}
+
+Each perceptron in the first hidden layer has 92 parameters to learn (91 weights plus one bias) and all other perceptrons have 129 parameters to learn (128 weights plus one bias). This totals to 73,051 trainable parameters. The ANNs are constructed using the sequential method in the Python package Keras \cite{chollet2018keras}, which is built on top of TensorFlow. The parameters are trained using the Adam method \cite{kingma2014adam}, which is a stochastic optimization method. The batch size is set to 31, the validation split is  20\% of the data. Also, the authors found that the performance is improved by dividing $\dot{Q}(t)$ by 200 kW and $\Delta T(t)$ by 200 $^oC$. This normalization makes it so that the inputs and outputs will generally vary on the order of one, which can lead to improved training \cite{sola1997importance}. 
+
+The training process also leveraged transfer learning, which is the based on the idea that an agent can learn a task more efficiently if it has already been trained to perform a similar task. 
+
+
+
+
 \subsection{Backward FDS emulators}
 \section{Experimental applications}
 \subsection{Heat release rate inversion}
