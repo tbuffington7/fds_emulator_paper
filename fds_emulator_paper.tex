@@ -54,11 +54,37 @@ Full scale calorimetry measurements are more difficult to obtain. Open burning c
 
 \section{Experimental setup}
     An experimental compartment measuring 5~m by 6~m by 2.4~m previously utilized for various room scale fire experiments including positive pressure ventilation~\cite{Weinschenk:2011}, wildfire fuel bed characterization~\cite{Overholt:2014}, and HRR inversion~\cite{Kurzawski:2017} at the J.J. Pickle Research Campus at the University of Texas at Austin was used to conduct further testing for HRR inversion experiments. All interior walls are lined with 1.6 cm gypsum wallboard and the floor is 2.54 cm thick and made of concrete. 
-    For the burner experiments, one sand burner 0.3~m by 0.3~m square with a height of 0.4~m constructed in accordance with the standard \textit{NFPA 286} was electronically controlled using an Alicat Scientific MCR-series 250 SLPM PID mass flow controllers to follow specified HRRs~\cite{NFPA:286}. The sand burner was placed in the center of the compartment. A National Instruments data acquisition system was used to send setpoint signals to the Alicat mass flow controllers to control the flow of propane to the burner within the compartment. The data rate for all experiments was set to 1~Hz.
+    For the burner experiments, one sand burner 0.3~m by 0.3~m square with a height of 0.4~m constructed in accordance with the standard \textit{NFPA 286} was electronically controlled using an Alicat Scientific MCR-series 250 SLPM PID mass flow controllers to follow specified HRRs~\cite{NFPA:286}. The sand burner was placed in the center of the compartment. A National Instruments data acquisition system was used to send setpoint signals to the Alicat mass flow controllers to control the flow of propane to the burner within the compartment. The data rate for all experiments was set to 1~Hz. Four burner experiments were conducted, each with a different prespecified HRR ramp. These included two triangle fires- one with a 300 second time to peak and one with a 100 second time to peak, a symmetric t-squared fire, and an arbitrary ramp that was chosen to resemble the potential behavior of an actual burning item whose HRR may grow and diminish unpredictably throughout an experiment. The four HRR ramps are shown in  
+
+    \begin{figure}[htb] \centering
+    \includegraphics[width=.75\textwidth]{figures/training_ramps.pdf}
+    \caption{A }
+    \label{fig:transfer_learning_diagram}
+    \end{figure}
 
 
-
-
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{.301\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{figures/burner.pdf}
+      \caption{Propane burner fire}
+      \label{fig:fire_image}
+  \end{subfigure}
+  \begin{subfigure}[t]{.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/nhexane.pdf}
+      \caption{N-hexane pool fire}
+      \label{fig:brightness_heatmap}
+  \end{subfigure}
+  \begin{subfigure}[t]{.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/methanol.pdf}
+      \caption{Methanol pool fire}
+      \label{fig:binary_fire_image}
+  \end{subfigure}
+  \caption{Photos from each of the three types of fire experiments conducted for this study.}
+\end{figure}
 
 
 \section{Computational models}
@@ -76,7 +102,7 @@ Because the CFAST model is only used for transfer learning, it is a relatively s
 \subsection{Building the training set}
 A key step developing the emulators is to determine a viable strategy for building the training set. This involves generating randomly draws for the HRR curves, but an appropriate construction of the random draws is not straightforward. One may think to specify the functional form of the HRR curve (i.e. t-squared or triangle ramps) and randomly draw the corresponding parameters. This approach is limiting because the ANNs then likely would only be able to produce reliable results for these \textit{parametric} HRR curves. Instead, a non-parametric description of the HRR curvies is preferred. This means that an HRR curve is drawn without specifying a functional form. There are also potential issues with this approach; if one draws independent random values at different times to construct the HRR curve, then that would produce unphyisically ``noisy" HRR curves.
 
-The Gaussian process formalism provides a useful solution to these issues. A Gaussian process is a stochastic process in which any finite collection of random variables has a joint multivariate normal distribution \cite{lee2017deep}. This concept can be a bit abstruse for those unfamiliar with this type of statistical modelling, so a more in-depth explanation is provided here. The overall goal is to describe a probability distribution of reasonably smooth functions. If this distribution exists, then one could draw a random sample of $N$ functions, i.e. $f_n(t), n \in \{1,2,.., N\}$, where each $f_n(t)$ is a randomly drawn function defined over $t$. At any specified time, $t'$, one could evaluate every drawn function at $t'$.  This would result in a sample of size $N$ of scalar function evaluations, $f_n(t')$. According to the definition of a Gaussian process, $f_n(t')$ is normally distributed for any $t'$. Now, one could imagine evaluating each of the functions at \textit{two} points, $t_1$ and $t_2$, resulting in two scalar function evaluations for each $f_n(t)$. Again, if the distribution of functions is a Gaussian process, then the vectors $[f_n(t_1), f_n(t_2)]^T$ will have a bivariate normal distribution. Similarly, for any size $k$ vector of times, $\boldsymbol{t} \in \R^k$, $f(\boldsymbol{t})$ is $k$-variate normally distributed. The general equation for a multivariate normal distribution is shown in equation \ref{eqn:multivariate_gaussian}.
+The Gaussian process formalism allows for the development of a generative model that circumvents these issues. A Gaussian process is a stochastic process in which any finite collection of random variables has a joint multivariate normal distribution \cite{lee2017deep}. This concept can be a bit abstruse for those unfamiliar with this type of statistical modelling, so a more in-depth explanation is provided here. The overall goal is to describe a probability distribution of reasonably smooth functions. If this distribution exists, then one could draw a random sample of $N$ functions, i.e. $f_n(t), n \in \{1,2,.., N\}$, where each $f_n(t)$ is a randomly drawn function defined over $t$. At any specified time, $t'$, one could evaluate every drawn function at $t'$.  This would result in a sample of size $N$ of scalar function evaluations, $f_n(t')$. According to the definition of a Gaussian process, $f_n(t')$ is normally distributed for any $t'$. Now, one could imagine evaluating each of the functions at \textit{two} points, $t_1$ and $t_2$, resulting in two scalar function evaluations for each $f_n(t)$. Again, if the distribution of functions is a Gaussian process, then the vectors $[f_n(t_1), f_n(t_2)]^T$ will have a bivariate normal distribution. Similarly, for any size $k$ vector of times, $\boldsymbol{t} \in \R^k$, $f(\boldsymbol{t})$ is $k$-variate normally distributed. The general equation for a multivariate normal distribution is shown in equation \ref{eqn:multivariate_gaussian}.
 
  \begin{equation}
   \label{eqn:multivariate_gaussian}
@@ -208,7 +234,7 @@ The training process also leveraged transfer learning, which is the based on the
 \label{fig:transfer_learning_diagram}
 \end{figure}
 
-In order to evaluate the effect of the this transfer learning procedure on training efficiency, 100 randomly generated FDS runs were set aside as a ``test set." An ANN emulator (for a single thermocouple) was then trained using a variable number of FDS cases ranging from 100 to 1900 cases. Once trained, the emulator made predictions on the 100 cases in the test set and the mean absolute error was calculated. This process was done twice- once with a ``cold start" ANN and again with an ANN that was initialized with the parameters from the trained CFAST ANN. Figure \ref{fig:transfer_learning} shows the effect of this initialization. It appears that the use of this transfer learning procedure dramatically reduces the required size of the FDS training set. 
+In order to evaluate the effect of the this transfer learning procedure on training efficiency, 100 randomly generated FDS runs were set aside as a ``test set." An ANN emulator (for a single thermocouple) was then trained using a variable number of FDS cases ranging from 100 to 1900 cases. Once trained, the emulator made predictions on the 100 cases in the test set and the mean absolute error was calculated. This process was done twice- once with a ``cold start" ANN (with randomly initialized parameters) and again with an ANN that was initialized with the parameters from the trained CFAST ANN. Figure \ref{fig:transfer_learning} shows the effect of this initialization. It appears that the use of this transfer learning procedure dramatically reduces the required size of the FDS training set. 
 
 \begin{figure}[htb] \centering
 \includegraphics[width=.75\textwidth]{./figures/transfer_learning_effect.pdf}
