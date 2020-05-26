@@ -200,16 +200,16 @@ The architecture of the ANNs is shown in Figure \ref{fig:neural_network_diagram}
 
 \begin{figure}[htbp]
   \centering
-  \begin{subfigure}[t]{.6\textwidth}
+  \begin{subfigure}[t]{.75\textwidth}
       \centering
       \includegraphics[width=\textwidth,keepaspectratio]{figures/neural_network_diagram.pdf}
-      \caption{A simplified diagram of the neural network   }
+      \caption{A simplified diagram of an ANN}
       \label{fig:neural_network_diagram}
   \end{subfigure}
-  \begin{subfigure}[t]{.35\textwidth}
+  \begin{subfigure}[t]{.5\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/perceptron_diagram.pdf}
-      \caption{}
+      \caption{A diagram of an individual perceptron}
       \label{fig:perceptron_diagram}
   \end{subfigure}
   \caption{\protect\ref{fig:neural_network_diagram} shows a simplified diagram of the neural network architecture used for each thermocouple response. In reality, the input layer and output layers each have 91 nodes as opposed to four, and each of the hidden layers has 128 perceptrons as opposed to six. The neural network is fully connected, meaning that each output of a given layer is an input to every perceptron in the next layer. \protect\ref{fig:perceptron_diagram} is a diagram showing the operation of an individual perceptron. All of the inputs to a given perceptron are weighted and then summed with an additional bias parameter. The result of this summation is sent through an activation function, which is the rectified linear activation function (ReLU) with the exception of the output layer, which simply outputs the sum.} 
@@ -255,11 +255,37 @@ For the results described in the rest of the paper, a training set of 1,000 FDS 
   \label{fig:forward_error}
 \end{figure}
 
-Figure \protect\ref{fig:forward_NN_examples} shows a typical output from the ANN emulators compared to an actual FDS simulation. The emulator predictions are typically smoother than the FDS outputs. This is likely due to the fact that the fluctuations in the FDS outputs are due to random turbulent effects, which are very difficult for the ANNs to learn. Overall the 
+Figure \protect\ref{fig:forward_NN_examples} shows a typical output from the ANN emulators compared to an actual FDS simulation. The emulator predictions are typically smoother than the FDS outputs. This is likely due to the fact that the fluctuations in the FDS outputs are due to random turbulent effects, which are very difficult for the ANNs to learn. Overall the mean absolute error (MAE) of the emulator predictions compared to FDS is 1.6$^o$ C, indicating that they can accurately produce FDS outputs for new HRR curves. The emulators typically issue a full set of predictions (all 17 temperature time series) at a speed of about 80 iterations per second. On the same computer, it takes about 25 minutes to achieve the respective results from the FDS simulation, which equates to a speedup of over five orders of magnitude. 
 
 
-\clearpage
 \subsection{Inverse FDS emulators}
+Another advantage of using ANN emulators to produce FDS outputs is that they can learn inverse mappings directly. The same ANN archeticure shown in Figure \ref{fig:neural_network_diagram} is used to produce 17 inverse emulators, except the quantities of the input and output layers are switched.  Each inverse emulator takes a temperature time series as an input and predicts the HRR ramp that would make FDS produce such an output for its respective thermocouple. This model can be especially useful because FDS does not natively have this functionality and iterative techniques are usually required. 
+
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{figures/backward_NN_examples.pdf}
+      \caption{}
+      \label{fig:backward_NN_examples}
+  \end{subfigure}
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/backward_error_scatter.pdf}
+      \caption{}
+      \label{fig:backward_error_scatter}
+  \end{subfigure}
+  \caption{Predictions of the backward FDS emulators compared to the actual HRR inputs. In \protect\ref{fig:backward_NN_examples}, the dashed black line was the input to an FDS simulation, which produced simulated thermocouple responses for 17 different locations. Each of the 17 outputs are then fed into its corresponding backward FDS emulator, which attempts to predict the HRR input. The 17 blue lines show the predicted HRR input from each of the 17 backward emulators. \protect\ref{fig:backward_error_scatter} shows the actual HRR input compared to the predictions from the backward emulator for FDS simulations of the three ramps of Figure \protect\ref{fig:training_ramps}.} 
+  \label{fig:backward_examples}
+\end{figure}
+
+
+
+
+
+
+
 \section{Experimental applications}
 \subsection{Heat release rate inversion}
 \subsection{Bayesian parameter inversion}
