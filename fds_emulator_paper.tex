@@ -194,7 +194,20 @@ The architecture of the ANNs is shown in Figure \ref{fig:neural_network_diagram}
 
 Each perceptron in the first hidden layer has 92 parameters to learn (91 weights plus one bias) and all other perceptrons have 129 parameters to learn (128 weights plus one bias). This totals to 73,051 trainable parameters. The ANNs are constructed using the sequential method in the Python package Keras \cite{chollet2018keras}, which is built on top of TensorFlow. The parameters are trained using the Adam method \cite{kingma2014adam}, which is a stochastic optimization method. The batch size is set to 31, the validation split is  20\% of the data. Also, the authors found that the performance is improved by dividing $\dot{Q}(t)$ by 200 kW and $\Delta T(t)$ by 200 $^oC$. This normalization makes it so that the inputs and outputs will generally vary on the order of one, which can lead to improved training \cite{sola1997importance}. 
 
-The training process also leveraged transfer learning, which is the based on the idea that an agent can learn a task more efficiently if it has already been trained to perform a similar task. 
+The training process also leveraged transfer learning, which is the based on the idea that an agent can learn a task more efficiently if it has already been trained to perform a similar task. If transfer learning is not used, the weights and biases of the emulator ANNs are initialized with random values at the start of training. Instead, an ANN was first trained to predict the transient upper gas layer temperature in CFAST. The weights and biases from this trained ANN are then used as the initial state for the ANN that is trained to predict the first FDS thermocouple. This process essentially transfers the knowledge of the simplified zone model physics of CFAST to the ANNs that learn the more complicated physics of FDS. Once the first FDS emulator is trained, its weights and biases are used to initialize each of the 16 remaining emulators. 
+
+
+\begin{figure}[htb] \centering
+\includegraphics[width=.75\textwidth]{figures/transfer_learning_diagram.pdf}
+\caption{A plot demonstrating the effect of transfer learning on the ability of an ANN to predict the response of a single thermocouple in FDS for a given HRR input. An ANN is first trained to predict the transient upper gas layer temperature given by CFAST, a simplified two zone fire model. Because of the simplified physics, a large training set (20,000 runs) is quickly obtained, allowing the ANN to accurately emulate CFAST. The weights and biases of this ANN are then used as the initial state of a second ANN that is trained to emulate the response of an individual thermocouple in FDS. The FDS emulator is scored based on its ability to predict the simulated thermocouple responses of 100 FDS cases that are excluded from the training sets. In each case, the ANNs train for 500 epochs.}
+\label{fig:transfer_learning}
+\end{figure}
+
+\begin{figure}[htb] \centering
+\includegraphics[width=.75\textwidth]{./figures/transfer_learning_effect.pdf}
+\caption{A plot demonstrating the effect of transfer learning on the ability of an ANN to predict the response of a single thermocouple in FDS for a given HRR input. An ANN is first trained to predict the transient upper gas layer temperature given by CFAST, a simplified two zone fire model. Because of the simplified physics, a large training set (20,000 runs) is quickly obtained, allowing the ANN to accurately emulate CFAST. The weights and biases of this ANN are then used as the initial state of a second ANN that is trained to emulate the response of an individual thermocouple in FDS. The FDS emulator is scored based on its ability to predict the simulated thermocouple responses of 100 FDS cases that are excluded from the training sets. In each case, the ANNs train for 500 epochs.}
+\label{fig:transfer_learning}
+\end{figure}
 
 
 
