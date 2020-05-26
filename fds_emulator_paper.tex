@@ -251,7 +251,7 @@ For the results described in the rest of the paper, a training set of 1,000 FDS 
       \caption{Comparison of the FDS simulation results compared to the predicted output from the emulators across all four HRR ramps and all 17 thermocouples }
       \label{fig:forward_error_scatter}
   \end{subfigure}
-  \caption{A comparison of the predictions of the ANN emulators compared to FDS simulations. \protect\ref{fig:forward_NN_examples} shows that the emulator outputs are typically smoother than the actual FDS outputs. \protect\ref{fig:forward_error_scatter} shows that the emulators successfully predict the FDS output for the four cases shown in Figure \protect\ref{fig:burner_ramps}. The mean absolute error across all thermocouples, all times, and all four HRR ramps is 1.6$^o$ C.}
+  \caption{A comparison of the predictions of the ANN emulators compared to FDS simulations. \protect\ref{fig:forward_NN_examples} shows that the emulator outputs are typically smoother than the actual FDS outputs. \protect\ref{fig:forward_error_scatter} shows that the emulators successfully predict the FDS output for the four cases shown in Figure \protect\ref{fig:burner_ramps}. The mean absolute error across all thermocouples, all times, and all four HRR ramps is 1.6$^o$ C or 2.5\% of the average temperature.}
   \label{fig:forward_error}
 \end{figure}
 
@@ -259,8 +259,7 @@ Figure \protect\ref{fig:forward_NN_examples} shows a typical output from the ANN
 
 
 \subsection{Inverse FDS emulators}
-Another advantage of using ANN emulators to produce FDS outputs is that they can learn inverse mappings directly. The same ANN archeticure shown in Figure \ref{fig:neural_network_diagram} is used to produce 17 inverse emulators, except the quantities of the input and output layers are switched.  Each inverse emulator takes a temperature time series as an input and predicts the HRR ramp that would make FDS produce such an output for its respective thermocouple. This model can be especially useful because FDS does not natively have this functionality and iterative techniques are usually required. 
-
+Another advantage of using ANN emulators to produce FDS outputs is that they can learn inverse mappings directly. The same ANN archeticure shown in Figure \ref{fig:neural_network_diagram} is used to produce 17 inverse emulators, except the quantities of the input and output layers are switched.  Each inverse emulator takes a temperature time series as an input and predicts the HRR ramp that would make FDS produce such an output for its respective thermocouple. This model can be especially useful because FDS does not natively have this functionality and iterative techniques are usually required. As before, the ANNs are first trained using the CFAST predicted upper gas layer. Using the FDS outputs for the four HRR curves shown in Figure \ref{fig:burner_ramps}, the inverse emulators each predicted the HRR ramp input that would cause FDS to produce the outputted transient temperature results. The results are shown in Figure \ref{fig:backward_examples}.
 
 \begin{figure}[htbp]
   \centering
@@ -276,19 +275,21 @@ Another advantage of using ANN emulators to produce FDS outputs is that they can
       \caption{}
       \label{fig:backward_error_scatter}
   \end{subfigure}
-  \caption{Predictions of the backward FDS emulators compared to the actual HRR inputs. In \protect\ref{fig:backward_NN_examples}, the dashed black line was the input to an FDS simulation, which produced simulated thermocouple responses for 17 different locations. Each of the 17 outputs are then fed into its corresponding backward FDS emulator, which attempts to predict the HRR input. The 17 blue lines show the predicted HRR input from each of the 17 backward emulators. \protect\ref{fig:backward_error_scatter} shows the actual HRR input compared to the predictions from the backward emulator for FDS simulations of the three ramps of Figure \protect\ref{fig:training_ramps}.} 
+  \caption{Predictions of the inverse FDS emulators compared to the actual HRR inputs. In \protect\ref{fig:backward_NN_examples}, the dashed black line is the HRR input ramp for an FDS simulation. For each of the 17 thermocouple locations, an inverse ANN emulator uses the corresponding simulated temperature time series to predict the HRR ramp that would cause FDS to produce such an output. The 17 blue lines show the predicted HRR curves for the 17 different ANNs. \protect\ref{fig:backward_error_scatter} shows the actual HRR input compared to the predicted input for all 17 thermocouple locations, all times, and all four HRR ramps shown in Figure \protect\ref{fig:burner_ramps}. The MAE is 5.2 kW, or 6\% of the average HRR.} 
   \label{fig:backward_examples}
 \end{figure}
 
-
-
-
-
-
+Not surprisingly, the error as a percentage is greater for the inverse ANN emulators than for the forward ANN emulators. This may in part be due to the fact that the problem is ill-posed in the sense that there is no guarantee that a temperature output implies a unique HRR input. Nevertheless, the emulators generally reconstruct the HRR inputs accurately. It appears that they produce the most error when the slope of the HRR curve rapidly changes signs. This may be an artifact of the bandwidth selections in the Gaussian process generative model. Also, the emulators struggle to tell when the HRR goes to zero at the end of the ramp. This is likely due to the fact that the temperatures remain elevated for quite some time, even after the fire is extinguished. In experimental applications, this issue can may be mitigated by the fact that it is often visually clear when a fire is extinguished from video footage.
 
 \section{Experimental applications}
+This section explores the application of the ANN emulators of FDS for two experimental efforts- estimating the transient heat release rate of a burning item and inferring the radiative fraction of a burning fuel. All of these efforts depend on the ability of FDS to model the fire scenario accurately. Ideally, several controlled experiments with known HRR ramps could be performed initially in an experimental structure so that any errors in the FDS model could be corrected. However, this calibration process can be expensive and depends on equipment that some facilities do not have. As a result, an HRR inversion framework that does not require calibration experiments is presented first, followed by one that utilizes the calibration process to improve predictions. The framework for inferring the radiative fraction depends on quantifying the experimental error of the emulators, so calibration experiments are used for this procedure as well. 
+
 \subsection{Heat release rate inversion}
-\subsection{Bayesian parameter inversion}
+The simplest approach for using the emulators to estimate a transient HRR is to pass the transient thermocouple measurements at the times in $\boldsymbol{t}^\text{NN}$ to the respective inverse ANN emulators. This results in 17 different predicted HRR curves (one for each thermocouple). In the absence of additional information, it is not clear whether any of these predictions is more credible than any of the others. As a result, a simple average of all of them is taken. 
+
+
+
+\subsection{Bayesian inference of the radiative fraction}
 \section{Conclusions}
 \bibliographystyle{unsrtnat}
 \bibliography{./references.bib}
