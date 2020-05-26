@@ -24,7 +24,7 @@
 \begin{document}
 
 
-\title{Deep-learning emulators of compartment fire simulations for room-scale calorimetry}
+\title{Deep-learning emulators of transient compartment fire simulations for room-scale calorimetry}
 
 
 
@@ -53,8 +53,13 @@ The specific inversion problem explored in this paper is to determine a fire's t
 Full scale calorimetry measurements are more difficult to obtain. Open burning calorimeters have been developed to measure the HRR of furniture items \cite{babrauskas1982upholstered}. However, a limitation of these approaches is that the burning conditions do not necessarily resemble those of an actual compartment fire. To account for room effects, oxygen depletion calorimetery has been applied to room-scale fire tests \cite{abecassis2008characterisation}. These measurements are often expensive and difficult to set up, which has led to an effort to develop more cost effective full scale HRR inversion frameworks. Most of these approaches rely on using correlations or two-zone models to invert for the HRR. Richards et al. \cite{richards1997fire} used temperature data from ceiling sensors to estiamte the HRR using LAVENT, a two-zone model. Overholt and Ezekoye \cite{overholt2012characterizing} developed a inversion framework that uses measurements of the upper gas layer temperature with the zone-model CFAST. Kurzawski and Ezekoye also developed a methodology using heat flux measurments from Directional Flame Thermometers (DFTs) with the FDS as the forward model. The present work is a natural extension of these studies in that it utilizes temperature measurements with the physics of FDS for HRR inversion.
 
 \section{Experimental setup}
-% Note, I am pulling these specs from Andrew's dissertation
-The experiments were conducted in a structure measuring 4.2 meters north to south and 4.6 meters east to west and 2.25 meters from the floor to the ceiling. A door on the west wall was kept open for all the tests described in this work, which was the only vent in the compartment. All interior walls are lined with 1.6 cm gypsum wallboard and the floor is 2.54 cm thick and made of concrete. For the propane fire tests, a sand burner with a height 0.4 m was placed at the center of the structure. The burner opening is 0.32 by 0.32 m and a 4 cm layer of sand sits on the top edge of the burner. 
+    An experimental compartment measuring 5~m by 6~m by 2.4~m previously utilized for various room scale fire experiments including positive pressure ventilation~\cite{Weinschenk:2011}, wildfire fuel bed characterization~\cite{Overholt:2014}, and HRR inversion~\cite{Kurzawski:2017} at the J.J. Pickle Research Campus at the University of Texas at Austin was used to conduct further testing for HRR inversion experiments. All interior walls are lined with 1.6 cm gypsum wallboard and the floor is 2.54 cm thick and made of concrete. 
+    For the burner experiments, one sand burner 0.3~m by 0.3~m square with a height of 0.4~m constructed in accordance with the standard \textit{NFPA 286} was electronically controlled using an Alicat Scientific MCR-series 250 SLPM PID mass flow controllers to follow specified HRRs~\cite{NFPA:286}. The sand burner was placed in the center of the compartment. A National Instruments data acquisition system was used to send setpoint signals to the Alicat mass flow controllers to control the flow of propane to the burner within the compartment. The data rate for all experiments was set to 1~Hz.
+
+
+
+
+
 
 \section{Computational models}
 Two computational models of the experimental setup were used in this study- one in CFAST and one in FDS. The CFAST model serves only for pretraining the ANNs that eventually learn to emulate FDS. 
@@ -192,14 +197,32 @@ The architecture of the ANNs is shown in Figure \ref{fig:neural_network_diagram}
   \label{fig:neural_network_drawings}
 \end{figure}
 
-Each perceptron in the first hidden layer has 92 parameters to learn (91 weights plus one bias) and all other perceptrons have 129 parameters to learn (128 weights plus one bias). This totals to 73,051 trainable parameters. The ANNs are constructed using the sequential method in the Python package Keras \cite{chollet2018keras}, which is built on top of TensorFlow. The parameters are trained using the Adam method \cite{kingma2014adam}, which is a stochastic optimization method. The batch size is set to 31, the validation split is  20\% of the data. Also, the authors found that the performance is improved by dividing $\dot{Q}(t)$ by 200 kW and $\Delta T(t)$ by 200 $^oC$. This normalization makes it so that the inputs and outputs will generally vary on the order of one, which can lead to improved training \cite{sola1997importance}. 
+Each perceptron in the first hidden layer has 92 parameters to learn (91 weights plus one bias) and all other perceptrons have 129 parameters to learn (128 weights plus one bias). This totals to 73,051 trainable parameters. The ANNs are constructed using the sequential method in the Python package Keras \cite{chollet2018keras}, which is built on top of TensorFlow. The parameters are trained using the Adam method \cite{kingma2014adam}, which is a stochastic optimization method. The batch size is set to 31, the validation split is  20\% of the data. Also, the authors found that the performance improved by dividing $\dot{Q}(t)$ by 200 kW and $\Delta T(t)$ by 200 $^oC$. This normalization makes it so that the inputs and outputs will generally vary on the order of one, which can lead to improved training \cite{sola1997importance}. 
 
-The training process also leveraged transfer learning, which is the based on the idea that an agent can learn a task more efficiently if it has already been trained to perform a similar task. 
-
-
+The training process also leveraged transfer learning, which is the based on the idea that an agent can learn a task more efficiently if it has already been trained to perform a similar task. If transfer learning is not used, the weights and biases of the emulator ANNs are initialized with random values at the start of training. Instead, an ANN was first trained to predict the transient upper gas layer temperature in CFAST. A training set of 20,000 randomly generated CFAST cases was used for this initial training step. The weights and biases from this trained ANN are then used as the initial state for the ANN that is trained to predict the first FDS thermocouple. This process essentially transfers the knowledge of the simplified zone model physics of CFAST to the ANNs that learn the more complicated physics of FDS. Once the first FDS emulator is trained, its weights and biases are used to initialize each of the 16 remaining emulators. The transfer learning approach is depicted in the flow chart, Figure \ref{fig:transfer_learning_diagram}.
 
 
-\subsection{Backward FDS emulators}
+\begin{figure}[htb] \centering
+\includegraphics[width=.5\textwidth]{figures/transfer_learning_diagram.pdf}
+\caption{A flow chart summarizing the transfer learning approach used during training. The circles represent outputs from compartment fire simulations. The rectangles represent emulator ANNs. The black arrows represent direct training and the blue arrows represent knowledge transfers. For example, the first emulator trains on examples of the transient CFAST UGL from a cold state. This knowledge is passed to the first FDS emulator, which then trains on the respective thermocouple in FDS. This knowledge is then transferred to all other FDS emulators.}
+\label{fig:transfer_learning_diagram}
+\end{figure}
+
+In order to evaluate the effect of the this transfer learning procedure on training efficiency, 100 randomly generated FDS runs were set aside as a ``test set." An ANN emulator (for a single thermocouple) was then trained using a variable number of FDS cases ranging from 100 to 1900 cases. Once trained, the emulator made predictions on the 100 cases in the test set and the mean absolute error was calculated. This process was done twice- once with a ``cold start" ANN and again with an ANN that was initialized with the parameters from the trained CFAST ANN. Figure \ref{fig:transfer_learning} shows the effect of this initialization. It appears that the use of this transfer learning procedure dramatically reduces the required size of the FDS training set. 
+
+\begin{figure}[htb] \centering
+\includegraphics[width=.75\textwidth]{./figures/transfer_learning_effect.pdf}
+\caption{A plot demonstrating the effect of pretraining an FDS emulator with the CFAST training set. If the FDS emulator is initialized with the weights and biases from a well trained CFAST UGL emulator, it can achieve lower error with a training set of 300 FDS runs than a ``cold start" emulator can with a training set of 1900 FDS runs.}
+\label{fig:transfer_learning}
+\end{figure}
+
+For the results described in the rest of the paper, a training set of 1,000 FDS cases is used. Once trained, the emulators made predictions on the four HRR ramps that were used in the burner experiments 
+
+
+
+
+
+\subsection{Inverse FDS emulators}
 \section{Experimental applications}
 \subsection{Heat release rate inversion}
 \subsection{Bayesian parameter inversion}
