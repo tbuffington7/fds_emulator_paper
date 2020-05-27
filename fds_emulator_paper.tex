@@ -282,10 +282,47 @@ Another advantage of using ANN emulators to produce FDS outputs is that they can
 Not surprisingly, the error as a percentage is greater for the inverse ANN emulators than for the forward ANN emulators. This may in part be due to the fact that the problem is ill-posed in the sense that there is no guarantee that a temperature output implies a unique HRR input. Nevertheless, the emulators generally reconstruct the HRR inputs accurately. It appears that they produce the most error when the slope of the HRR curve rapidly changes signs. This may be an artifact of the bandwidth selections in the Gaussian process generative model. Also, the emulators struggle to tell when the HRR goes to zero at the end of the ramp. This is likely due to the fact that the temperatures remain elevated for quite some time, even after the fire is extinguished. In experimental applications, this issue can may be mitigated by the fact that it is often visually clear when a fire is extinguished from video footage.
 
 \section{Experimental applications}
-This section explores the application of the ANN emulators of FDS for two experimental efforts- estimating the transient heat release rate of a burning item and inferring the radiative fraction of a burning fuel. All of these efforts depend on the ability of FDS to model the fire scenario accurately. Ideally, several controlled experiments with known HRR ramps could be performed initially in an experimental structure so that any errors in the FDS model could be corrected. However, this calibration process can be expensive and depends on equipment that some facilities do not have. As a result, an HRR inversion framework that does not require calibration experiments is presented first, followed by one that utilizes the calibration process to improve predictions. The framework for inferring the radiative fraction depends on quantifying the experimental error of the emulators, so calibration experiments are used for this procedure as well. 
+This section explores the application of the ANN emulators of FDS for two experimental efforts- estimating the transient heat release rate of a burning item and inferring the radiative fraction of a burning fuel. All of these efforts depend heavily on the accuracy of the FDS model. 
 
 \subsection{Heat release rate inversion}
-The simplest approach for using the emulators to estimate a transient HRR is to pass the transient thermocouple measurements at the times in $\boldsymbol{t}^\text{NN}$ to the respective inverse ANN emulators. This results in 17 different predicted HRR curves (one for each thermocouple). In the absence of additional information, it is not clear whether any of these predictions is more credible than any of the others. As a result, a simple average of all of them is taken. 
+The simplest approach for using the emulators to estimate a transient HRR is to pass the transient thermocouple measurements at the times in $\boldsymbol{t}^\text{NN}$ to the respective inverse ANN emulators. This results in 17 different predicted HRR curves (one for each thermocouple). In the absence of additional information, it is not clear whether any of these predictions is more credible than any of the others. As a result, an average of all 17 predictions is taken for each timestep. The results of this procedure using the thermocouple data from the burner experiments is shown in Figure \ref{fig:burner_results}.
+
+
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{figures/avg_inverse_100s_triangle.pdf}
+      \caption{100 sec. triangle \\ MAE:}
+      \label{fig:result_100s_triangle}
+  \end{subfigure}
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_300s_triangle.pdf}
+      \caption{300 sec. triangle \\ MAE:}
+      \label{fig:result_300s_triangle}
+  \end{subfigure}
+   \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_t_squared.pdf}
+      \caption{t-squared \\ MAE: }
+      \label{fig:result_t_squared}
+  \end{subfigure}
+    \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_weird_curve.pdf}
+      \caption{Arbitrary curve \\ Forward: MAE = 7.1 kW (11.6 \%) \\ Backward: MAE = 9.0 kW (14.7 \%)}
+      \label{fig:result_weird_curve}
+  \end{subfigure}
+  \caption{HRR inversion results for all four burner experiments. For each experiment, the measurements from each thermocouple are passed into the respective ANN emulator. The emulator predicts the HRR ramp that would cause FDS to output the same temperature time series. Each emulator performs this task, resulting in the 17 blue curves. The red curve is the average of all the individual emulator predictions.} 
+  \label{fig:burner_results}
+\end{figure}
+
+
+
+
+
 
 
 
