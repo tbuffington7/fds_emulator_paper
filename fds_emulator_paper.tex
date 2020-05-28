@@ -380,7 +380,7 @@ Next, the construction of the likelihood, $p\big(D\big|\chi_R\big)$ is described
 It is assumed that the difference between the forward emulator outputs and the actual FDS simulation outputs is negligible. Therefore, equation \ref{eqn:likelihood_reduced} is essentially the uncertainty associated with the FDS predictions. In other words, if FDS predicts a set of temperatures for a given scenario, what is the probability distribution for the corresponding temperatures in a real fire scenario? Answering questions such as these is a central aim of the FDS Validation Guide \cite{mcgrattan2020fire}, which serves as the primary resource for constructing this likelihood distribution. However, several steps are required before equation \ref{eqn:likelihood_reduced} can be written in terms of the uncertainties reported in the validation guide. First, the validation guide typically condenses time series measurements into scalar quantities. For temperatures, this is done by evaluating the peak temperature rise for both the experimental data and the FDS output. As such, the maximum temperature rise is calculated for each thermocouple across all of $\boldsymbol{t}^\text{NN}$ and similarly for each emulator output. This results in two vectors each of length 17, $\boldsymbol{T}_{max}$, which contains the maximum temperature rise measured by each thermocouple and $\boldsymbol{\hat{T}}_{max}(\chi_R)$, which contains the maximum predicted temperature rise for each ANN emulator for a given $\chi_R$. This further reduces the likelihood to 
 
  \begin{equation}
-  \label{eqn:likelihood_reduced}
+  \label{eqn:likelihood_vector}
   p\big(D\big|\chi_R\big) = p\bigg(\boldsymbol{T}_{max} \bigg| \boldsymbol{\hat{T}}_{max}(\chi_R)\bigg)
 \end{equation}
 
@@ -388,11 +388,51 @@ Based on equation 4.23  of the FDS Validation Guide, the PDF of the peak tempera
 
  \begin{equation}
   \label{eqn:validation_pdf}
-  T_{i,max} \big| \hat{T}_{i,max}(\chi_R) \sim N\Bigg( \frac{\hat{T}_{i,max}(\chi_R)}{\delta} ,   \bigg( \frac{\hat{T}_{i,max}(\chi_R)}{\delta} \bigg)^2(\tilde{\sigma}_m + \tilde{\sigma}_e) \Bigg)
+  T_{i,max} \big| \hat{T}_{i,max}(\chi_R) \sim N\Bigg( \frac{\hat{T}_{i,max}(\chi_R)}{\delta} ,   \sigma_i^2 \Bigg)
 \end{equation}
 
-\noindent where $\delta$ is a bias term. As previously noted, it is reported in the Validation Guide as 1.03 for both the naturally ventilated HGL and ceiling jet simulations, which were determined to be the most similar quantities to those used in this paper. The relative modeling uncertainty, $\tilde{\sigma}_m$ is reported as 0.11 for naturally ventilated HGL predictions and 0.12 for ceiling jet predictions, and the value of 0.12 is used in the present study. The experimental uncertainty $\tilde{\sigma}_e$ is reported as 0.07 for both of relevant quantities in the Validation Guide. Although the uncertainty for the measured quantities described in this paper may be different, the 0.07 was chosen for simplicity. 
+\noindent where 
 
+$$
+\sigma_i^2 = \bigg( \frac{\hat{T}_{i,max}(\chi_R)}{\delta} \bigg)^2(\tilde{\sigma}_m^2 + \tilde{\sigma}_e^2)
+$$
+
+
+\noindent where $\delta$ is a bias term. As previously noted, it is reported in the Validation Guide as 1.03 for both the naturally ventilated HGL and ceiling jet simulations, which were determined to be the most similar quantities to those used in this paper. The relative modeling uncertainty, $\tilde{\sigma}_m$ is reported as 0.11 for naturally ventilated HGL predictions and 0.12 for ceiling jet predictions, and the value of 0.12 is used in the present study. The experimental uncertainty $\tilde{\sigma}_e$ is reported as 0.07 for both of the relevant quantities in the Validation Guide. The magnitude of the temperature rise is similar across all 17 thermocouples, so $\sigma_i$, so a simplifying assumption is that the $\sigma_i^2$ is the same across all thermocouples. Also, 
+$\hat{T}_{i,max}(\chi_R)$ should be of similar magnitude to $T_{i,max}$. As a result, the following approximation is used:
+
+ \begin{equation}
+  \label{eqn:sigma_assumption}
+  \sigma_i^2 \approx \bigg(\frac{T_{avg, max}}{\delta}\bigg)^2 (\tilde{\sigma}_m^2 + \tilde{\sigma}_e^2) = \sigma^2
+\end{equation}
+
+where $T_{avg, max}$ is the average peak temperature of the 17 thermocouples. This approximation makes it so that the variance is the same across all thermocouples, and does not need to be recalculated for each iteration of the MCMC sampler. Now that the likelihood for a single thermocouple has been specified, the next step is to compute the full likelihood for the full array of thermocouples. 
+
+
+
+
+If the measured values of $T_{i,max}$ are independently distributed around $\frac{\hat{T}_{i,max}(\chi_R)}{\delta}$, then the resulting likelihood is equation \ref{eqn:independence}.
+
+\begin{equation}
+  \label{eqn:independence}
+  p\bigg(\boldsymbol{T}_{max} \bigg| \boldsymbol{\hat{T}}_{max}(\chi_R)\bigg) = \prod_{i=1}^{17} p\bigg(T_{i,max} \big| \hat{T}_{i,max}(\chi_R)\bigg)
+\end{equation}
+
+Although this is a common approach, there is reason to expect that the measurements are not randomly distributed independently around the predicted values from FDS. Instead, spatial correlation is likely. For example, if FDS underpredicts the temperature measured at a location in the compartment, it probably underpredicts nearby temperatures as well. Treating correlated observations as independent can lead to biased parameter estimates and overconfident inferences due to an underestimation of the variance \cite{dormann2007effects}. To circumvent these issues, the correlations of errors between FDS predictions is modeled explicitly. First, recognize that equation \ref{eqn:independence} in conjunction with equation \ref{eqn:validation_pdf} is actually a special case of the \textit{multivariate} normal distribution, 
+
+\begin{equation}
+  \label{eqn:mv_likelihood}
+    \boldsymbol{T}_{max} \bigg| \boldsymbol{\hat{T}}_{max}(\chi_R) \sim N\Bigg( \frac{\hat{\boldsymbol{T}}_{max}(\chi_R)}{\delta}, \boldsymbol\Sigma \Bigg)
+\end{equation}
+
+\noindent where $\Sigma$ is a covariance matrix. Equation \ref{eqn:independence} is equivalent to setting $\Sigma = I\boldsymbol{\sigma}^2$, where $I$ denotes the identity matrix. In other words, the FDS Validation guide implies that the diagonal terms of of $\boldsymbol\Sigma$ are each $\tau^2$, but it is unclear what the off-diagonal terms, which describe correlations, should be. It is expected that the correlation between the errors in model outputs between two thermocouples should be a function of the distance between them. If they are very close to each other, the error associated with the FDS model will likely be similar for both of them. As the distance between them increases, the modelling errors are likely to become more uncorrelated. The intuition here is very similar to that described in the development of the Gaussian process generative model, in which function evaluations that are close in time are assumed to be correlated. In fact, the squared exponential covariance function (equation \ref{eqn:squared_exponential}) is used again here to model the covariance matrix. This model is used to capture correlation effects in the geostatistical modelling \cite{f2007methods}. This results in the following model for the covariance matrix:
+
+ \begin{equation}
+  \label{eqn:squared_exponential_spatial}
+    \Sigma_{i,j}= \sigma^2exp\bigg(-\frac{d_{i,j}^2}{2b^2}\bigg)
+\end{equation}
+
+\noindent where $d_{i,j}$ is the euclidean distance between the $ith$ and $jth$ thermocouples. 
 
 
 \section{Conclusions}
