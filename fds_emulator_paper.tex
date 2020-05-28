@@ -282,52 +282,123 @@ Another advantage of using ANN emulators to produce FDS outputs is that they can
 Not surprisingly, the error as a percentage is greater for the inverse ANN emulators than for the forward ANN emulators. This may in part be due to the fact that the problem is ill-posed in the sense that there is no guarantee that a temperature output implies a unique HRR input. Nevertheless, the emulators generally reconstruct the HRR inputs accurately. It appears that they produce the most error when the slope of the HRR curve rapidly changes signs. This may be an artifact of the bandwidth selections in the Gaussian process generative model. Also, the emulators struggle to tell when the HRR goes to zero at the end of the ramp. This is likely due to the fact that the temperatures remain elevated for quite some time, even after the fire is extinguished. In experimental applications, this issue can may be mitigated by the fact that it is often visually clear when a fire is extinguished from video footage.
 
 \section{Experimental applications}
-This section explores the application of the ANN emulators of FDS for two experimental efforts- estimating the transient heat release rate of a burning item and inferring the radiative fraction of a burning fuel. All of these efforts depend heavily on the accuracy of the FDS model. 
+This section explores the application of the ANN emulators of FDS for two experimental efforts- estimating the transient heat release rate of a burning item and inferring the radiative fraction of a burning fuel. Both of these efforts depend heavily on the accuracy of the FDS model. 
 
 \subsection{Heat release rate inversion}
-The simplest approach for using the emulators to estimate a transient HRR is to pass the transient thermocouple measurements at the times in $\boldsymbol{t}^\text{NN}$ to the respective inverse ANN emulators. This results in 17 different predicted HRR curves (one for each thermocouple). In the absence of additional information, it is not clear whether any of these predictions is more credible than any of the others. As a result, an average of all 17 predictions is taken for each timestep. The results of this procedure using the thermocouple data from the burner experiments is shown in Figure \ref{fig:burner_results}.
+The simplest approach for using the emulators to estimate a transient HRR is to pass the transient thermocouple measurements at the times in $\boldsymbol{t}^\text{NN}$ to the respective inverse ANN emulators. The FDS Validation Guide \cite{mcgrattan2020fire} indicates that FDS tends to overpredict both hot gas layer and ceiling jet temperature rises by a bias factor, $\delta$, of 1.03. All measured temperature rises are multiplied by this factor before being passed to the emulators. This results in 17 different predicted HRR curves (one for each thermocouple). In the absence of additional information, it is not clear whether any of these predictions is more credible than any of the others. As a result, an average of all 17 predictions is taken for each timestep. 
 
-
+The results of this procedure using the thermocouple data from the burner experiments is shown in Figure \ref{fig:burner_results}.
 
 \begin{figure}[htbp]
   \centering
   \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth,keepaspectratio]{figures/avg_inverse_100s_triangle.pdf}
-      \caption{100 sec. triangle \\ MAE:}
+      \caption{100 sec. triangle \\ MAE: 2.9 kW (13\% of average exp. HRR)}
       \label{fig:result_100s_triangle}
   \end{subfigure}
   \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_300s_triangle.pdf}
-      \caption{300 sec. triangle \\ MAE:}
+      \caption{300 sec. triangle \\ MAE: 7.9 kW (12\% of average exp. HRR)}
       \label{fig:result_300s_triangle}
   \end{subfigure}
    \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_t_squared.pdf}
-      \caption{t-squared \\ MAE: }
+      \caption{t-squared \\ MAE: 6.0 kW (19\% of average exp. HRR) }
       \label{fig:result_t_squared}
   \end{subfigure}
     \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_weird_curve.pdf}
-      \caption{Arbitrary curve \\ Forward: MAE = 7.1 kW (11.6 \%) \\ Backward: MAE = 9.0 kW (14.7 \%)}
+      \caption{Arbitrary curve \\ MAE: 5.5 kW (13\% of average exp. HRR)}
       \label{fig:result_weird_curve}
   \end{subfigure}
   \caption{HRR inversion results for all four burner experiments. For each experiment, the measurements from each thermocouple are passed into the respective ANN emulator. The emulator predicts the HRR ramp that would cause FDS to output the same temperature time series. Each emulator performs this task, resulting in the 17 blue curves. The red curve is the average of all the individual emulator predictions.} 
   \label{fig:burner_results}
 \end{figure}
-
-
-
-
-
-
+ 
+ The procedure was repeated for the pool fire experiments, shown in Figure \ref{fig:pool_results}.
+ 
+ \begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{figures/avg_inverse_nhex_12in_1.pdf}
+      \caption{N-hexane test 1 \\ MAE: 6.2 kW (26\% of average exp. HRR)}
+      \label{fig:result_nhex_12in_1}
+  \end{subfigure}
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_nhex_12in_2.pdf}
+      \caption{N-hexane test 2 \\ MAE: 4.6 kW (34\% of average exp. HRR)}
+      \label{fig:result_nhex_12in_2}
+  \end{subfigure}
+   \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_meth_22in_1.pdf}
+      \caption{Methanol test 1 \\ MAE: 4.8 kW (12\% of average exp. HRR) }
+      \label{fig:result_meth_22in_1}
+  \end{subfigure}
+    \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/avg_inverse_meth_22in_2.pdf}
+      \caption{Methanol test 2 \\ MAE: 5.9 kW (20\% of average exp. HRR)}
+      \label{fig:meth_22in_2}
+  \end{subfigure}
+  \caption{HRR inversion results for all four pool fire experiments. For each experiment, the measurements from each thermocouple are passed into the respective ANN emulator. The emulator predicts the HRR ramp that would cause FDS to output the same temperature time series. Each emulator performs this task, resulting in the 17 blue curves. The red curve is the average of all the individual emulator predictions.} 
+  \label{fig:pool_results}
+\end{figure}
 
 
 \subsection{Bayesian inference of the radiative fraction}
+Another potential application of the FDS emulators is Bayesian inference. This is a statistical framework for updating prior beliefs in light of observed data and models. It is commonly used for inferring kinetic parameters \cite{bruns2016inferring} and testing fire scenario hypotheses \cite{overholt2015quantitative}. The general idea is that one is interested in learning about some arbitrary parameter, $\theta$. Before observing any data, prior beliefs about the possible values of $\theta$ are quantified using a probability distribution. Then, if data are observed, and one has a model for the data that takes $\theta$ as an input, the prior distribution can be updated to produce a posterior distribution that generally is more confident. Intuitively, this is because some values of $\theta$ that were originally believed to be credible produce model outputs that do not align with observed data. This approach is useful because it output probability estimates that convey uncertainty rather than point estimates, but it can be computationally prohibitive because it relies on Markov chain Monte Carlo (MCMC) samplers, which can require tens of thousands of model evaluations performed in series. As a result, MCMC techniques have mostly been limited to simplified models that can be run quickly. However, the ability to produce CFD results quickly with deep learning could make it more practical to incorporate high fidelity physics into Bayesian inference techniques. Even if training the ANN emulators requires the same number of model evaluations as an MCMC simulation, the ability to parallelize the runs can still greatly reduce the time required to achieve MCMC results. 
+
+As an illustrative example, the Bayesian inference procedure is demonstrated to infer the radiatve fraction, $\chi_R$ of a burning fuel using a combination of synthetic and experimental data. This quantity refers to the fraction of energy that is released as radiation for a burning item. Hypothetically, heat flux measurements taken at various locations around a burning item during an experiment can be used to estimate the radiative heat release rate, $\dot{Q}_R=\chi_R\dot{Q}$ \cite{koseki1989combustion}. For simplicity, it is assumed that $\dot{Q}_R$ is given; this is the only use of synthetic data in this section. The ``arbitrary" ramp (Figure \ref{fig:burner_ramps}) is used for the demonstration. The radiative fraction, $\chi_R$ is assumed to be 0.30 for propane \cite{beyler2016fire}, which is used to calculate $\dot{Q}_R(\boldsymbol{t}^{NN})$ (the radiative fraction at the times in $\boldsymbol{t}^\text{NN}$). For the contrived example, it is assumed that $\dot{Q}_R(\boldsymbol{t}^\text{NN})$ is the only known quantity, which could have been inferred from heat flux measurements. The Bayesian inference model attempts to learn $chi_R$ (and by extension, $\dot{Q}$) from the observed experimental data and the FDS emulators. 
+
+Formally, the objective is to produce the posterior distribution, $p\big(\chi_R|D\big)$, which is the probability distribution for $\chi_R$ \textit{given} observed data, $D$. Bayes theorem then gives equation \ref{eqn:bayes}:
+
+
+ \begin{equation}
+  \label{eqn:bayes}
+  p\big(\chi_R|D\big) = \frac{p\big(D\big|\chi_R\big)p\big(\chi_R\big)}{p\big(D\big)}
+\end{equation}
+
+
+\noindent where the \textit{likelihood}, $p\big(D\big|\chi_R)$, quantifies how likely the observed data are given an assumed value of $\chi_R$. This is where the FDS model is used, but it will be explained in more detail below. The \textit{marginal likelihood}, $p\big(D\big)$ generally does not need to be addressed explicitly because it is determined from the constraint that $p\big(\chi_R|D\big)$ must integrate to one. Finally the prior, $p\big(\chi_R\big)$ quantifies prior beliefs about the value of $\chi_R$. Fleury \cite{fleury2010evaluation} notes that $\chi_R$ varies from approximately 0.15 to 0.60. Therefore, a uniform prior is used, $\chi_R \sim Uniform(0.15, 0.60)$. 
+
+Next, the construction of the likelihood, $p\big(D\big|\chi_R\big)$ is described. Specifically, the observed data $D$ is an array of 17 measured temperature rises $\boldsymbol{T}(\boldsymbol{t}^\text{NN})$ at each of the times in $\boldsymbol{t}^\text{NN}$. For a given $\chi_R$, predicted temperature rises, $\hat{\bold{T}}\big(\boldsymbol{t}^\text{NN}, \dot{Q}(\boldsymbol{t}^\text{NN})\big)$, can be produced by passing the ANN emulators the HRR ramp, $\dot{Q}(\boldsymbol{t}^\text{NN}) = \frac{\dot{Q}_R(\boldsymbol{t}^\text{NN})}{\chi_R}$. Because $\dot{Q}_R(\boldsymbol{t}^\text{NN})$ is given, the predictions of the forward FDS emulators will here on out be written as a function of $\chi_R$ for simplicity, i.e. $\hat{\boldsymbol{T}}\big(\boldsymbol{t}^\text{NN}, \dot{Q}(\boldsymbol{t}^\text{NN})\big)  = \hat{\bold{T}}\big(\boldsymbol{t}^\text{NN}, \chi_R\big)$. Because a given value of $\chi_R$ produces a specific emulator output, the likelihood can be viewed as the probability of the observed temperatures given a set of emulator predictions, i.e.
+
+
+
+ \begin{equation}
+  \label{eqn:likelihood_reduced}
+  p\big(D\big|\chi_R\big) = p\bigg(\boldsymbol{T}(\boldsymbol{t}^\text{NN}) \bigg| \hat{\bold{T}}\big(\boldsymbol{t}^\text{NN}, \chi_R\big)\bigg)
+\end{equation}
+
+It is assumed that the difference between the forward emulator outputs and the actual FDS simulation outputs is negligible. Therefore, equation \ref{eqn:likelihood_reduced} is essentially the uncertainty associated with the FDS predictions. In other words, if FDS predicts a set of temperatures for a given scenario, what is the probability distribution for the corresponding temperatures in a real fire scenario? Answering questions such as these is a central aim of the FDS Validation Guide \cite{mcgrattan2020fire}, which serves as the primary resource for constructing this likelihood distribution. However, several steps are required before equation \ref{eqn:likelihood_reduced} can be written in terms of the uncertainties reported in the validation guide. First, the validation guide typically condenses time series measurements into scalar quantities. For temperatures, this is done by evaluating the peak temperature rise for both the experimental data and the FDS output. As such, the maximum temperature rise is calculated for each thermocouple across all of $\boldsymbol{t}^\text{NN}$ and similarly for each emulator output. This results in two vectors each of length 17, $\boldsymbol{T}_{max}$, which contains the maximum temperature rise measured by each thermocouple and $\boldsymbol{\hat{T}}_{max}(\chi_R)$, which contains the maximum predicted temperature rise for each ANN emulator for a given $\chi_R$. This further reduces the likelihood to 
+
+ \begin{equation}
+  \label{eqn:likelihood_reduced}
+  p\big(D\big|\chi_R\big) = p\bigg(\boldsymbol{T}_{max} \bigg| \boldsymbol{\hat{T}}_{max}(\chi_R)\bigg)
+\end{equation}
+
+Based on equation 4.23  of the FDS Validation Guide, the PDF of the peak temperature rise measured by thermocouple $i$ is normally distributed, shown in equation \ref{eqn:validation_pdf} \footnote{The experimental uncertainty is added here because $T_{i,max}$ is a measured quantity. In equation 4.23 of the Validation Guide, $\theta$ denotes the ``true" quantity.} 
+
+ \begin{equation}
+  \label{eqn:validation_pdf}
+  T_{i,max} \big| \hat{T}_{i,max}(\chi_R) \sim N\Bigg( \frac{\hat{T}_{i,max}(\chi_R)}{\delta} ,   \bigg( \frac{\hat{T}_{i,max}(\chi_R)}{\delta} \bigg)^2(\tilde{\sigma}_m + \tilde{\sigma}_e) \Bigg)
+\end{equation}
+
+\noindent where $\delta$ is a bias term. As previously noted, it is reported in the Validation Guide as 1.03 for both the naturally ventilated HGL and ceiling jet simulations, which were determined to be the most similar quantities to those used in this paper. The relative modeling uncertainty, $\tilde{\sigma}_m$ is reported as 0.11 for naturally ventilated HGL predictions and 0.12 for ceiling jet predictions, and the value of 0.12 is used in the present study. The experimental uncertainty $\tilde{\sigma}_e$ is reported as 0.07 for both of relevant quantities in the Validation Guide. Although the uncertainty for the measured quantities described in this paper may be different, the 0.07 was chosen for simplicity. 
+
+
+
 \section{Conclusions}
+
+
+\clearpage
 \bibliographystyle{unsrtnat}
 \bibliography{./references.bib}
 \end{document}
