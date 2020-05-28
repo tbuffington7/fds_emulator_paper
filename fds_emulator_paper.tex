@@ -355,7 +355,7 @@ The results of this procedure using the thermocouple data from the burner experi
 \subsection{Bayesian inference of the radiative fraction}
 Another potential application of the FDS emulators is Bayesian inference. This is a statistical framework for updating prior beliefs in light of observed data and models. It is commonly used for inferring kinetic parameters \cite{bruns2016inferring} and testing fire scenario hypotheses \cite{overholt2015quantitative}. The general idea is that one is interested in learning about some arbitrary parameter, $\theta$. Before observing any data, prior beliefs about the possible values of $\theta$ are quantified using a probability distribution. Then, if data are observed, and one has a model for the data that takes $\theta$ as an input, the prior distribution can be updated to produce a posterior distribution that generally is more confident. Intuitively, this is because some values of $\theta$ that were originally believed to be credible produce model outputs that do not align with observed data. This approach is useful because it output probability estimates that convey uncertainty rather than point estimates, but it can be computationally prohibitive because it relies on Markov chain Monte Carlo (MCMC) samplers, which can require tens of thousands of model evaluations performed in series. As a result, MCMC techniques have mostly been limited to simplified models that can be run quickly. However, the ability to produce CFD results quickly with deep learning could make it more practical to incorporate high fidelity physics into Bayesian inference techniques. Even if training the ANN emulators requires the same number of model evaluations as an MCMC simulation, the ability to parallelize the runs can still greatly reduce the time required to achieve MCMC results. 
 
-As an illustrative example, the Bayesian inference procedure is demonstrated to infer the radiatve fraction, $\chi_R$ of a burning fuel using a combination of synthetic and experimental data. This quantity refers to the fraction of energy that is released as radiation for a burning item. Hypothetically, heat flux measurements taken at various locations around a burning item during an experiment can be used to estimate the radiative heat release rate, $\dot{Q}_R=\chi_R\dot{Q}$ \cite{koseki1989combustion}. For simplicity, it is assumed that $\dot{Q}_R$ is given; this is the only use of synthetic data in this section. The ``arbitrary" ramp (Figure \ref{fig:burner_ramps}) is used for the demonstration. The radiative fraction, $\chi_R$ is assumed to be 0.30 for propane \cite{beyler2016fire}, which is used to calculate $\dot{Q}_R(\boldsymbol{t}^{NN})$ (the radiative fraction at the times in $\boldsymbol{t}^\text{NN}$). For the contrived example, it is assumed that $\dot{Q}_R(\boldsymbol{t}^\text{NN})$ is the only known quantity, which could have been inferred from heat flux measurements. The Bayesian inference model attempts to learn $chi_R$ (and by extension, $\dot{Q}$) from the observed experimental data and the FDS emulators. 
+As an illustrative example, the Bayesian inference procedure is demonstrated to infer the radiatve fraction, $\chi_R$ of a burning fuel using a combination of synthetic and experimental data. This quantity refers to the fraction of energy that is released as radiation for a burning item. Hypothetically, heat flux measurements taken at various locations around a burning item during an experiment can be used to estimate the radiative heat release rate, $\dot{Q}_R=\chi_R\dot{Q}$ \cite{koseki1989combustion}. For simplicity, it is assumed that $\dot{Q}_R$ is given; this is the only use of synthetic data in this section. The 300 second triangle ramp (Figure \ref{fig:burner_ramps}) is used for the demonstration. The radiative fraction, $\chi_R$ is assumed to be 0.30 for propane \cite{beyler2016fire}, which is used to calculate $\dot{Q}_R(\boldsymbol{t}^{NN})$ (the radiative fraction at the times in $\boldsymbol{t}^\text{NN}$). For the contrived example, it is assumed that $\dot{Q}_R(\boldsymbol{t}^\text{NN})$ is the only known quantity, which could have been inferred from heat flux measurements. The Bayesian inference model attempts to learn $chi_R$ (and by extension, $\dot{Q}$) from the observed experimental data and the FDS emulators. 
 
 Formally, the objective is to produce the posterior distribution, $p\big(\chi_R|D\big)$, which is the probability distribution for $\chi_R$ \textit{given} observed data, $D$. Bayes theorem then gives equation \ref{eqn:bayes}:
 
@@ -432,7 +432,33 @@ Although this is a common approach, there is reason to expect that the measureme
     \Sigma_{i,j}= \sigma^2exp\bigg(-\frac{d_{i,j}^2}{2b^2}\bigg)
 \end{equation}
 
-\noindent where $d_{i,j}$ is the euclidean distance between the $ith$ and $jth$ thermocouples. It is not obvious what the value for the bandwidths, $b$, is most appropriate. Instead, a uniform prior is also placed over it ranging from 0 to 10~m. The introduction of this parameter makes it so the MCMC sampler produces  
+\noindent where $d_{i,j}$ is the euclidean distance between the $ith$ and $jth$ thermocouples. It is not obvious what the value for the bandwidths, $b$, is most appropriate. Instead, a uniform prior is also placed over it ranging from 0 to 10~m. Because of the introduction of this extra parameter, the MCMC sampler actually samples the joint distribution, $p(\chi_R, b \ | \ \boldsymbol{T}_{max})$. The final distribution of interest is obtained by marginalizing out $b$, which is described by equation 
+
+ \begin{equation}
+  \label{eqn:squared_exponential_spatial}
+   p(\chi_R \ | \ \boldsymbol{T}_{max}) = \int_{-\infty}^{\infty} p(\chi_R, b \ | \ \boldsymbol{T}_{max}) db
+\end{equation}
+
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{figures/bayes_distributions_300s_triangle.pdf}
+      \caption{}
+      \label{fig:backward_NN_examples}
+  \end{subfigure}
+  \begin{subfigure}[t]{.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth ,keepaspectratio]{figures/bayes_burner_result.pdf}
+      \caption{}
+      \label{fig:backward_error_scatter}
+  \end{subfigure}
+  \caption{} 
+  \label{fig:bayes_results}
+\end{figure}
+
+
 
 
 \section{Conclusions}
