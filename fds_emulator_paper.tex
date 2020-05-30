@@ -42,7 +42,7 @@ Compartment fire models are useful for many applications. For one, accurate pred
 
 The computational expense of fire simulation tools varies significantly. For instance,  ``zone" models typically run at super-real-time speeds because of their relatively simple physics. These models are useful for probabilistic assessments \cite{anderson2018quantifying, baker2013developing} and other applications that require results from many simulations. Zone models typically divide a compartment into two homogeneous zones- an upper gas layer of hot combustion products, and a cooler lower layer. Examples of commonly used zone models include the Consolidated Model of Fire and Smoke Transport (CFAST) \cite{peacock1993cfast} and BRANZFIRE \cite{wade2000branzfire}. Conversely, computational fluid dynamics (CFD) models are significantly more computationally expensive, but are generally more accurate. These models are also capable of making predictions for specific locations in the compartment, rather than for large spatially averaged zones. 
 
-There have been various efforts to combine the advantages of CFD and zone models. Hostikka et al. \cite{hostikka2005two} proposed a Two-model Monte Carlo approach that uses a relatively small number of FDS runs to correct the results from a larger number of CFAST runs to produce a probabilistic output. Outside of compartment fire modelling, there are many studies that have explored the coupling of zone models with CFD models for various applications \cite{dreng2008method, tan2005application, wang2007validation, colella2009calculation, floyd2011coupling, colella2011multiscale}. 
+There have been various efforts to combine the advantages of CFD and zone models. Hostikka et al. \cite{hostikka2005two} proposed a Two-model Monte Carlo approach that uses a relatively small number of FDS runs to correct the results from a larger number of CFAST runs to produce a probabilistic output. Outside of compartment fire modelling, there are many studies that have explored the coupling of zone models with CFD models for various applications \cite{dreng2008method, tan2005application, wang2007validation, colella2009calculation, floyd2011coupling, colella2011multiscale}.
 
 The recent advances in machine learning have allowed for novel methods of producing models that combine the accuracy of CFD models with the computational speed of zone models. Hodges et al. \cite{hodges2019compartment} and  Lattimer et al. \cite{lattimer2020using} have proposed using transpose convolutional neural networks (TCNNs) for producing spatially resolved temperature and velocity fields for steady compartment fires. Although the present work is similar to these studies in the sense that deep learning is leveraged to develop "emulators" of FDS, there are several key differences. First, rather than predicting the full temperature field in a steady compartment fire, the aim of the present study is to predict the transient temperature evolutions at specified location for a compartment fire with a transient heat release rate evolution. These locations correspond to the locations of thermocouples in an experimental configuration. Another key difference is the role of zone models in the methodology. Rather than using zone model results as inputs to the deep learning models, they are used for \textit{transfer learning} \cite{pan2009survey}. This is a concept heavily used in Natural Language Processing (NLP) \cite{ruder2019transfer} and computer vision \cite{gopalakrishnan2017deep} applications. The idea is that an agent can learn a new task more efficiently if it has already been trained to perform a similar task. In the present study, the artificial neural networks (ANNs) are first trained to produce outputs from a zone model, with which a large training set can be obtained easily. These ANNs are then trained to produce FDS results. The result is that the pretrained ANNs can learn to produce accurate FDS results with much fewer FDS runs than non-pretrained ANNs. An advantage of this approach is that when the model makes predictions for a new case, the zone model does not need to be run again, which would be a speed-limiting step. 
 
@@ -54,13 +54,15 @@ Full scale calorimetry measurements are more difficult to obtain. Open burning c
 
 \section{Experimental setup}
 An experimental compartment measuring 5~m by 6~m by 2.4~m previously utilized for various room scale fire experiments including positive pressure ventilation~\cite{Weinschenk:2011}, wildfire fuel bed characterization~\cite{Overholt:2014}, and HRR inversion~\cite{Kurzawski:2017} at the J.J. Pickle Research Campus at the University of Texas at Austin was used to conduct further testing for HRR inversion experiments. All interior walls are lined with 1.6 cm gypsum wallboard and the floor is 2.54 cm thick and made of concrete. 
-For the burner experiments, one sand burner 0.3~m by 0.3~m square with a height of 0.4~m constructed in accordance with the standard \textit{NFPA 286} was electronically controlled using an Alicat Scientific MCR-series 250 SLPM PID mass flow controllers to follow specified HRRs~\cite{NFPA:286}. The sand burner was placed in the center of the compartment. A National Instruments data acquisition system was used to send setpoint signals to the Alicat mass flow controllers to control the flow of propane to the burner within the compartment. The data rate for all experiments was set to 1~Hz. Four burner experiments were conducted, each with a different prespecified HRR ramp. These included two triangle fires- one with a 300 second time to peak and one with a 100 second time to peak, a symmetric t-squared fire, and an arbitrary ramp that was chosen to resemble the potential behavior of an actual burning item whose HRR may grow and diminish unpredictably throughout an experiment. The four HRR ramps are shown in  
+For the burner experiments, one sand burner 0.3~m by 0.3~m square with a height of 0.4~m constructed in accordance with the standard \textit{NFPA 286} was electronically controlled using an Alicat Scientific MCR-series 250 SLPM PID mass flow controllers to follow specified HRRs~\cite{NFPA:286}. The sand burner was placed in the center of the compartment. A National Instruments data acquisition system was used to send setpoint signals to the Alicat mass flow controllers to control the flow of propane to the burner within the compartment. The data rate for all experiments was set to 1~Hz. Four burner experiments were conducted, each with a different prespecified HRR ramp. These included two triangle fires- one with a 300 second time to peak and one with a 100 second time to peak, a symmetric t-squared fire, and an arbitrary ramp that was chosen to resemble the potential behavior of an actual burning item whose HRR may grow and diminish unpredictably throughout an experiment. The four HRR ramps are shown in Figure \ref{fig:burner_ramps}.
 
 \begin{figure}[htb] \centering
 \includegraphics[width=.75\textwidth]{figures/training_ramps.pdf}
 \caption{The four specified HRR ramps for the burner experiments.}
 \label{fig:burner_ramps}
     \end{figure}
+
+In addition to the propane burner experiments, four pool fire experiments were conducted. These include two n-Hexane fires conducted in an aluminum pan with a 12-inch diameter and two methanol fires conducted in an aluminum pan with a 22-inch diameter. The pans were place on a load cell, which measured the mass of the pan and the fuel during the tests with a sampling rate of 1 Hz. The HRR was determined by smoothing the mass loss data with a kernel smoother using a bandwidth of 60 seconds before computing a first-order numerical difference. This difference was then multiplied by the effective heat of combustion, which was assumed to be 44.7 kJ/g for n-Hexane and 20 kJ/g for methanol (taken from Table 26.21 in \cite{babrauskas2016heat}). Example photos of the tests used in this work are shown in Figure \ref{fig:experiment_photos}.
 
 
 \begin{figure}[htbp]
@@ -69,29 +71,48 @@ For the burner experiments, one sand burner 0.3~m by 0.3~m square with a height 
       \centering
       \includegraphics[width=\textwidth,keepaspectratio]{figures/burner.pdf}
       \caption{Propane burner fire}
-      \label{fig:fire_image}
+      \label{fig:propane_image}
   \end{subfigure}
   \begin{subfigure}[t]{.3\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/nhexane.pdf}
       \caption{N-hexane pool fire}
-      \label{fig:brightness_heatmap}
+      \label{fig:nhexane_image}
   \end{subfigure}
   \begin{subfigure}[t]{.3\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/methanol.pdf}
       \caption{Methanol pool fire}
-      \label{fig:binary_fire_image}
+      \label{fig:methanol_image}
   \end{subfigure}
-  \caption{Photos from each of the three types of fire experiments conducted for this study.}
+  \caption{Photos from each of the three types of fire experiments conducted for this work.}
+    \label{fig:experiment_photos}
 \end{figure}
+
+Temperatures were collected from 17 thermocouples arranged according to Figure \ref{fig:tc_locations} in the experimental chamber. There are 8 stands with 2 thermocouples each located at heights of 1.6 m and 2.11 m. The stands are arranged in a 4 by 2 grid with 1 m between stands in the x-direction and 2.2 m between stands in the y-direction. The final 2 thermocouples (16 and 17) are located along the west and east walls at a height of 1.97 m and 0.95 m from the north wall. A single thermocouple (marked with an X in Fig. \ref{fig:tc_locations}) failed during testing was omitted from the present work.
+
+\begin{figure}[htb] \centering
+\includegraphics[width=.75\textwidth]{figures/Burn_Structure_TC_ML.pdf}
+\caption{A diagram of the experimental burn structure and the thermocouple locations.}
+\label{fig:tc_locations}
+    \end{figure}
+
 \section{Computational models}
 Two computational models of the experimental setup were used in this study- one in CFAST and one in FDS. The CFAST model serves only for pretraining the ANNs that eventually learn to emulate FDS. 
+
+
 \subsection{Consolidated Model of Fire and Smoke Transport (CFAST)}
 Because the CFAST model is only used for transfer learning, it is a relatively simple description of the experimental setup. 
-
-
 \subsection{Fire Dynamics Simulator (FDS)}
+
+The FDS model consisted of of a 5.6 m by 4.6 m by 2.2 m structure based on the diagram shown in Figure \ref{fig:tc_locations}. The four exterior walls and the ceiling were modeled as gypsum boards with thicknesses of 0.016 m. The thermal properties were specified according to Bruns and Prasad \cite{bruns2014parametric} and Kukuck \cite{kukuck2009heat}. The floor was modeled as concrete with a thickness of 0.04 m. Although the bead diameter of the actual thermocouples is 0.5 mm, an ``effective" bead diameter of 3 mm was used instead based on previous results from Kurzawski \cite{kurzawski2017inversion}. The computational domain extended outside the structure 1 m in the negative-Y direction to allow FDS to solve for the flow outside the door. A mesh size of 0.2 m was used because of the large number of runs required for the present work. Although this is a fairly coarse mesh, 
+
+
+
+
+
+
+
 \section{Emulators of FDS with ANNs}
 \subsection{Building the training set}
 A key step developing the emulators is to determine a viable strategy for building the training set. This involves generating randomly draws for the HRR curves, but an appropriate construction of the random draws is not straightforward. One may think to specify the functional form of the HRR curve (i.e. t-squared or triangle ramps) and randomly draw the corresponding parameters. This approach is limiting because the ANNs then likely would only be able to produce reliable results for these \textit{parametric} HRR curves. Instead, a non-parametric description of the HRR curvies is preferred. This means that an HRR curve is drawn without specifying a functional form. There are also potential issues with this approach; if one draws independent random values at different times to construct the HRR curve, then that would produce unphyisically ``noisy" HRR curves.
@@ -216,7 +237,7 @@ The architecture of the ANNs is shown in Figure \ref{fig:neural_network_diagram}
   \label{fig:neural_network_drawings}
 \end{figure}
 
-Each perceptron in the first hidden layer has 92 parameters to learn (91 weights plus one bias) and all other perceptrons have 129 parameters to learn (128 weights plus one bias). This totals to 73,051 trainable parameters. The ANNs are constructed using the sequential method in the Python package Keras \cite{chollet2018keras}, which is built on top of TensorFlow. The parameters are trained using the Adam method \cite{kingma2014adam}, which is a stochastic optimization method. The batch size is set to 31, the validation split is  20\% of the data. Also, the authors found that the performance improved by dividing $\dot{Q}(t)$ by 200 kW and $\Delta T(t)$ by 200 $^oC$. This normalization makes it so that the inputs and outputs will generally vary on the order of one, which can lead to improved training \cite{sola1997importance}. 
+Each perceptron in the first hidden layer has 92 parameters to learn (91 weights plus one bias) and all other perceptrons have 129 parameters to learn (128 weights plus one bias). This totals to 73,051 trainable parameters. The ANNs are constructed using the sequential method in the Python package Keras \cite{chollet2018keras}, which is built on top of TensorFlow. The parameters are trained using the Adam method \cite{kingma2014adam}, which is a stochastic optimization method. The batch size is set to 31, the validation split is  20\% of the data. Also, the authors found that the performance improved by dividing $\dot{Q}(t)$ by 200 kW and $T(t)$ by 200 $^oC$. This normalization makes it so that the inputs and outputs will generally vary on the order of one, which can lead to improved training \cite{sola1997importance}. 
 
 The training process also leveraged transfer learning, which is the based on the idea that an agent can learn a task more efficiently if it has already been trained to perform a similar task. If transfer learning is not used, the weights and biases of the emulator ANNs are initialized with random values at the start of training. Instead, an ANN was first trained to predict the transient upper gas layer temperature in CFAST. A training set of 20,000 randomly generated CFAST cases was used for this initial training step. The weights and biases from this trained ANN are then used as the initial state for the ANN that is trained to predict the first FDS thermocouple. This process essentially transfers the knowledge of the simplified zone model physics of CFAST to the ANNs that learn the more complicated physics of FDS. Once the first FDS emulator is trained, its weights and biases are used to initialize each of the 16 remaining emulators. The transfer learning approach is depicted in the flow chart, Figure \ref{fig:transfer_learning_diagram}.
 
@@ -256,8 +277,6 @@ For the results described in the rest of the paper, a training set of 1,000 FDS 
 \end{figure}
 
 Figure \protect\ref{fig:forward_NN_examples} shows a typical output from the ANN emulators compared to an actual FDS simulation. The emulator predictions are typically smoother than the FDS outputs. This is likely due to the fact that the fluctuations in the FDS outputs are due to random turbulent effects, which are very difficult for the ANNs to learn. Overall the mean absolute error (MAE) of the emulator predictions compared to FDS is 1.6$^o$ C, indicating that they can accurately produce FDS outputs for new HRR curves. The emulators typically issue a full set of predictions (all 17 temperature time series) at a speed of about 80 iterations per second. On the same computer, it takes about 25 minutes to achieve the respective results from the FDS simulation, which equates to a speedup of over five orders of magnitude. 
-
-
 \subsection{Inverse FDS emulators}
 Another advantage of using ANN emulators to produce FDS outputs is that they can learn inverse mappings directly. The same ANN archeticure shown in Figure \ref{fig:neural_network_diagram} is used to produce 17 inverse emulators, except the quantities of the input and output layers are switched.  Each inverse emulator takes a temperature time series as an input and predicts the HRR ramp that would make FDS produce such an output for its respective thermocouple. This model can be especially useful because FDS does not natively have this functionality and iterative techniques are usually required. As before, the ANNs are first trained using the CFAST predicted upper gas layer. Using the FDS outputs for the four HRR curves shown in Figure \ref{fig:burner_ramps}, the inverse emulators each predicted the HRR ramp input that would cause FDS to produce the outputted transient temperature results. The results are shown in Figure \ref{fig:backward_examples}.
 
@@ -280,7 +299,6 @@ Another advantage of using ANN emulators to produce FDS outputs is that they can
 \end{figure}
 
 Not surprisingly, the error as a percentage is greater for the inverse ANN emulators than for the forward ANN emulators. This may in part be due to the fact that the problem is ill-posed in the sense that there is no guarantee that a temperature output implies a unique HRR input. Nevertheless, the emulators generally reconstruct the HRR inputs accurately. It appears that they produce the most error when the slope of the HRR curve rapidly changes signs. This may be an artifact of the bandwidth selections in the Gaussian process generative model. Also, the emulators struggle to tell when the HRR goes to zero at the end of the ramp. This is likely due to the fact that the temperatures remain elevated for quite some time, even after the fire is extinguished. In experimental applications, this issue can may be mitigated by the fact that it is often visually clear when a fire is extinguished from video footage.
-
 \section{Experimental applications}
 This section explores the application of the ANN emulators of FDS for two experimental efforts- estimating the transient heat release rate of a burning item and inferring the radiative fraction of a burning fuel. Both of these efforts depend heavily on the accuracy of the FDS model. 
 
@@ -432,10 +450,10 @@ Although this is a common approach, there is reason to expect that the measureme
     \Sigma_{i,j}= \sigma^2exp\bigg(-\frac{d_{i,j}^2}{2b^2}\bigg)
 \end{equation}
 
-\noindent where $d_{i,j}$ is the euclidean distance between the $ith$ and $jth$ thermocouples. It is not obvious what the value for the bandwidths, $b$, is most appropriate. Instead, a uniform prior is also placed over it ranging from 0 to 10~m. Because of the introduction of this extra parameter, the MCMC sampler actually samples the joint distribution, $p(\chi_R, b \ | \ \boldsymbol{T}_{max})$. The final distribution of interest is obtained by marginalizing out $b$, which is described by equation 
+\noindent where $d_{i,j}$ is the euclidean distance between the $ith$ and $jth$ thermocouples. It is not obvious what the value for the bandwidths, $b$, is most appropriate. Instead, a uniform prior is also placed over it ranging from 0 to 10~m. Because of the introduction of this extra parameter, the MCMC sampler actually samples the joint distribution, $p(\chi_R, b \ | \ \boldsymbol{T}_{max})$. The final distribution of interest is obtained by marginalizing out $b$, which is described by equation \ref{eqn:marginalizing}.
 
  \begin{equation}
-  \label{eqn:squared_exponential_spatial}
+  \label{eqn:marginalizing}
    p(\chi_R \ | \ \boldsymbol{T}_{max}) = \int_{-\infty}^{\infty} p(\chi_R, b \ | \ \boldsymbol{T}_{max}) db
 \end{equation}
 
@@ -445,22 +463,18 @@ Although this is a common approach, there is reason to expect that the measureme
   \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth,keepaspectratio]{figures/bayes_distributions_300s_triangle.pdf}
-      \caption{}
-      \label{fig:backward_NN_examples}
+      \caption{The prior and posterior distributions for the 300 second triangle fire.}
+      \label{fig:prior_posterior}
   \end{subfigure}
   \begin{subfigure}[t]{.45\textwidth}
       \centering
       \includegraphics[width=\textwidth ,keepaspectratio]{figures/bayes_burner_result.pdf}
-      \caption{}
-      \label{fig:backward_error_scatter}
+      \caption{The 95\% credible interval for the total HRR curve implied by the posterior of $\chi_R$.}
+      \label{fig:bayes_burner_result}
   \end{subfigure}
-  \caption{} 
+  \caption{An illustration of the Bayesian inference process for $\chi_R$ using the reported uncertainties in the FDS validation guide. In \protect\ref{fig:prior_posterior}, the purple uniform distribution is the prior. After performing the MCMC sampling, the blue distribution is the posterior. \protect\ref{fig:bayes_burner_result} shows the HRR curve credible interval that is implied by the posterior of $\chi_R$.} 
   \label{fig:bayes_results}
 \end{figure}
-
-
-
-
 \section{Conclusions}
 
 
